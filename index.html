@@ -637,7 +637,7 @@
             <table class="batch-table">
               <thead>
                 <tr>
-                  <th id="thName">ITEM</th><th class="thL">L</th><th class="thW">W</th><th class="thH">H</th><th id="thWt">WT</th><th id="thQty">QTY</th><th></th>
+                  <th id="thName">ITEM</th><th class="thL">L</th><th class="thW">W</th><th class="thH">H</th><th id="thWt">WT</th><th id="thQty">QTY</th><th id="thBatchCom">TYPE</th><th></th>
                 </tr>
               </thead>
               <tbody id="batchRows"></tbody>
@@ -672,12 +672,6 @@
                 <input type="checkbox" id="batchMixed" onchange="onInput()">
                 <span id="lblBatchMixed">Mixed-SKU pallets: different items may share a pallet, layer by layer</span>
               </label>
-            </div>
-            <div class="form-group">
-              <label class="form-label" id="lblBatchCommodity">Commodity type <span class="hint" id="hintBatchCommodity">(optional — flags items whose NMFC class is often fixed)</span></label>
-              <select id="batchCommoditySel" onchange="onInput()">
-                <option value="">—</option>
-              </select>
             </div>
           </div>
 
@@ -1351,13 +1345,12 @@
         lblIncludePallet: "Include pallet weight & height in density (recommended — NMFC measures the handling unit as tendered)",
         lblCommodity: 'Commodity type <span class="hint">(optional — flags items whose NMFC class is often fixed)</span>',
         lblBatchHelp: "Enter each item on its own row. Density and class are computed per row, plus a combined shipment class.",
-        thName: "ITEM", thWt: "WT", thQty: "QTY",
+        thName: "ITEM", thWt: "WT", thQty: "QTY", thBatchCom: "TYPE",
         btnAddRow: "+ Add item",
         lblBatchPallet: "Palletize each row (pieces auto-stacked onto the selected pallet)",
         lblBatchPreset: "Pallet preset & per-pallet limits (incl. pallet)",
         lblBatchRotate3d: "Any-side-up: try all 3 carton orientations",
         lblBatchMixed: "Mixed-SKU pallets: different items may share a pallet, layer by layer",
-        lblBatchCommodity: 'Commodity type <span class="hint">(optional — flags items whose NMFC class is often fixed)</span>',
         lblDoubleStack: "Double-stack pallets (2-high)",
         recLabel: "Best fit", bthMixedTag: "mixed-SKU", bthPallet: "PALLET", bthContents: "CONTENTS",
         revExplain: 'Packaging optimizer: pick the class you WANT to pay for, and this shows the cube (or weight) your shipment must hit to get it — e.g. "to rate as Class 70, 500 lbs must pack into 22.2–33.3 ft³".',
@@ -1447,13 +1440,12 @@
         lblIncludePallet: "밀도 계산에 팔레트 무게·높이 포함 (권장 — NMFC는 팔레트 포함 상태로 측정)",
         lblCommodity: '품목 종류 <span class="hint">(선택 — NMFC 등급이 고정되는 품목 안내)</span>',
         lblBatchHelp: "품목별로 행을 추가해 입력하세요. 행별 밀도/등급과 전체 화물 통합 등급이 함께 계산됩니다.",
-        thName: "품목", thWt: "무게", thQty: "수량",
+        thName: "품목", thWt: "무게", thQty: "수량", thBatchCom: "종류",
         btnAddRow: "+ 품목 추가",
         lblBatchPallet: "행별 팔레트 적재 (선택한 팔레트에 자동 적층 계산)",
         lblBatchPreset: "팔레트 프리셋 & 팔레트당 한도 (팔레트 포함)",
         lblBatchRotate3d: "방향 무관: 카톤 3축 회전 자동최적화",
         lblBatchMixed: "혼합 적재: 서로 다른 품목을 레이어 단위로 같은 팔레트에 적재",
-        lblBatchCommodity: '품목 종류 <span class="hint">(선택 — NMFC 등급이 고정되는 품목 안내)</span>',
         lblDoubleStack: "팔레트 2단 적재 (2-high)",
         recLabel: "최적 차량", bthMixedTag: "혼합", bthPallet: "팔레트", bthContents: "적재 내용",
         revExplain: '포장 최적화 도구: 원하는(내고 싶은) 클래스를 고르면, 그 등급을 받기 위해 화물이 맞춰야 할 부피(또는 무게) 범위를 알려줍니다 — 예: "Class 70을 받으려면 500 lbs 기준 부피가 22.2~33.3 ft³ 사이여야 함".',
@@ -1532,7 +1524,7 @@
       document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
       const dict = translations[lang];
       // ids that carry HTML (hint spans)
-      const htmlKeys = { lblDims: 1, lblCommodity: 1, lblPalletLimits: 1, lblBatchCommodity: 1 };
+      const htmlKeys = { lblDims: 1, lblCommodity: 1, lblPalletLimits: 1 };
       for (const key in dict) {
         const el = document.getElementById(key);
         if (!el) continue;
@@ -1694,13 +1686,21 @@
     }
 
     // ---------- commodity select ----------
+    // compact option list for the per-row selects (class ranges live in the note)
+    function commodityOptionsHtml(selected) {
+      return '<option value="">—</option>' + COMMODITIES.map(c =>
+        `<option value="${c.key}" ${selected === c.key ? 'selected' : ''}>${currentLang === 'ko' ? c.ko : c.en}</option>`).join('');
+    }
+
     function populateCommoditySelect() {
-      ['commoditySel', 'batchCommoditySel'].forEach(id => {
-        const sel = document.getElementById(id);
-        const cur = sel.value;
-        sel.innerHTML = '<option value="">—</option>' + COMMODITIES.map(c =>
-          `<option value="${c.key}">${currentLang === 'ko' ? c.ko : c.en} (~${c.cls})</option>`).join('');
-        sel.value = cur;
+      const sel = document.getElementById('commoditySel');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">—</option>' + COMMODITIES.map(c =>
+        `<option value="${c.key}">${currentLang === 'ko' ? c.ko : c.en} (~${c.cls})</option>`).join('');
+      sel.value = cur;
+      // per-row selects in batch mode follow the language too
+      document.querySelectorAll('#batchRows .b-com').forEach(rowSel => {
+        rowSel.innerHTML = commodityOptionsHtml(rowSel.value);
       });
     }
 
@@ -1719,6 +1719,7 @@
         `<td><input type="number" class="b-len b-h" min="0" step="any" value="${v.h !== undefined ? v.h : 10}" oninput="onInput()" style="width:62px;"></td>` +
         `<td><input type="number" class="b-wt" min="0" step="any" value="${v.wt !== undefined ? v.wt : 30}" oninput="onInput()" style="width:72px;"></td>` +
         `<td><input type="number" class="b-qty" min="1" step="1" value="${v.q !== undefined ? v.q : 1}" oninput="onInput()" style="width:52px;"></td>` +
+        `<td><select class="b-com" onchange="onInput()" style="max-width:110px; font-size:11px; padding:8px 6px;">${commodityOptionsHtml(v.com || '')}</select></td>` +
         `<td><button class="row-del" onclick="this.closest('tr').remove(); onInput(true);" title="Remove">✕</button></td>`;
       document.getElementById('batchRows').appendChild(tr);
       onInput(true);
@@ -1733,7 +1734,8 @@
         const r = {
           name: tr.querySelector('.b-name').value || '—',
           l: toIn(g('.b-l')), w: toIn(g('.b-w')), h: toIn(g('.b-h')),
-          wt: toLbs(g('.b-wt')), q: Math.max(1, Math.round(g('.b-qty') || 1))
+          wt: toLbs(g('.b-wt')), q: Math.max(1, Math.round(g('.b-qty') || 1)),
+          com: tr.querySelector('.b-com').value
         };
         if ([r.l, r.w, r.h, r.wt].every(x => !isNaN(x) && x > 0)) rows.push(r);
       });
@@ -1946,7 +1948,9 @@
         let html = `<tr><th>${t('bthRow')}</th><th>ft³</th><th>${t('bthDensity')}</th><th>${t('bthClass')}</th></tr>`;
         detail.forEach(d => {
           const palletTag = d.pack ? ` · ${d.pack.palletCount} plt` : '';
-          html += `<tr><td>${escHtml(d.name)}${d.q > 1 ? ' ×' + d.q : ''}${palletTag}</td><td>${fmtN(d.cube, 1)}</td><td>${d.density.toFixed(2)}</td><td class="cls">${d.cls}</td></tr>`;
+          const comObj = d.com ? COMMODITIES.find(x => x.key === d.com) : null;
+          const comTag = comObj ? (comObj.fixed ? ' ⚠' : ' ℹ') : '';
+          html += `<tr><td>${escHtml(d.name)}${d.q > 1 ? ' ×' + d.q : ''}${palletTag}${comTag}</td><td>${fmtN(d.cube, 1)}</td><td>${d.density.toFixed(2)}</td><td class="cls">${d.cls}</td></tr>`;
         });
         document.getElementById('batchResTable').innerHTML = html;
       }
@@ -2045,14 +2049,23 @@
       box.innerHTML = html;
     }
 
-    function renderCommodityNote() {
-      const key = document.getElementById(mode === 'batch' ? 'batchCommoditySel' : 'commoditySel').value;
-      const box = document.getElementById('commodityNote');
-      if (!key) { box.innerHTML = ''; return; }
+    function commodityNoteHtml(key) {
       const c = COMMODITIES.find(x => x.key === key);
+      if (!c) return '';
       const name = currentLang === 'ko' ? c.ko : c.en;
       const msg = c.fixed ? tFmt('wCommodityFixed', { name, cls: c.cls }) : tFmt('wCommodityRange', { name, cls: c.cls });
-      box.innerHTML = `<div class="warn-box ${c.fixed ? '' : 'info'}"><span class="w-ico">${c.fixed ? '⚠️' : '💡'}</span><span>${msg}</span></div>`;
+      return `<div class="warn-box ${c.fixed ? '' : 'info'}"><span class="w-ico">${c.fixed ? '⚠️' : '💡'}</span><span>${msg}</span></div>`;
+    }
+
+    function renderCommodityNote() {
+      const box = document.getElementById('commodityNote');
+      if (mode === 'batch') {
+        // one note per distinct commodity across the rows
+        const keys = [...new Set((lastResult && lastResult.rows ? lastResult.rows : []).map(r => r.com).filter(Boolean))];
+        box.innerHTML = keys.map(commodityNoteHtml).join('');
+        return;
+      }
+      box.innerHTML = commodityNoteHtml(document.getElementById('commoditySel').value);
     }
   </script>
 
@@ -2399,7 +2412,8 @@
         document.querySelectorAll('#batchRows tr').forEach(tr => {
           rows.push([tr.querySelector('.b-name').value.replace(/[~|]/g, ' '),
             tr.querySelector('.b-l').value, tr.querySelector('.b-w').value, tr.querySelector('.b-h').value,
-            tr.querySelector('.b-wt').value, tr.querySelector('.b-qty').value].join('~'));
+            tr.querySelector('.b-wt').value, tr.querySelector('.b-qty').value,
+            tr.querySelector('.b-com').value].join('~'));
         });
         p.set('b', rows.join('|'));
         p.set('bp', document.getElementById('batchIncludePallet').checked ? 1 : 0);
@@ -2414,8 +2428,6 @@
           p.set('bpw', document.getElementById('batchPalW').value);
           p.set('bpwt', document.getElementById('batchPalWt').value);
         }
-        const bcom = document.getElementById('batchCommoditySel').value;
-        if (bcom) p.set('bcom', bcom);
       }
       return location.origin + location.pathname + '?' + p.toString();
     }
@@ -2464,7 +2476,7 @@
         document.getElementById('batchRows').innerHTML = '';
         g('b').split('|').forEach(row => {
           const f = row.split('~');
-          if (f.length === 6) addBatchRow({ name: f[0], l: f[1], w: f[2], h: f[3], wt: f[4], q: f[5] });
+          if (f.length >= 6) addBatchRow({ name: f[0], l: f[1], w: f[2], h: f[3], wt: f[4], q: f[5], com: f[6] || '' });
         });
         document.getElementById('batchIncludePallet').checked = g('bp') === '1';
         if (g('bpp')) document.getElementById('batchPalletPreset').value = g('bpp');
@@ -2476,7 +2488,6 @@
         if (g('bpl')) document.getElementById('batchPalL').value = g('bpl');
         if (g('bpw')) document.getElementById('batchPalW').value = g('bpw');
         if (g('bpwt')) document.getElementById('batchPalWt').value = g('bpwt');
-        if (g('bcom')) document.getElementById('batchCommoditySel').value = g('bcom');
       }
       if (m) setMode(m);
     }
