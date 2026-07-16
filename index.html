@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO -->
+  <title id="seoTitle">Freight Class Calculator — NMFC Density Class (2025 Updated) with Truck Loading 3D</title>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2965119835410946"
+     crossorigin="anonymous"></script>
+  <meta name="description" id="seoDesc" content="Free freight class calculator. Enter dimensions and weight to get density (PCF) and NMFC freight class instantly — updated for the July 2025 NMFC changes (13-sub density scale). Reverse calculator, multi-item batch mode, pallet presets and 53ft truck loading 3D visualization.">
+  <!-- meta keywords intentionally omitted: Google has ignored it for ranking
+       since 2009, so it only leaks keyword strategy to competitors. -->
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://freight-class-density-calculator.pages.dev/">
+  <meta name="author" content="Freight Class Calculator">
+  <meta name="theme-color" content="#0284C7">
+
+  <!-- favicon: Google shows a site icon in mobile results; no manifest/PWA
+       because it is not a ranking signal and brings no traffic here -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Freight Class Calculator">
+  <meta property="og:url" content="https://freight-class-density-calculator.pages.dev/">
+  <meta property="og:title" id="ogTitle" content="Freight Class Calculator — NMFC Density Class (2025 Updated)">
+  <meta property="og:description" id="ogDesc" content="Enter dimensions and weight to get density (PCF) and NMFC freight class instantly. Updated for the July 2025 NMFC changes. Reverse calculator, batch mode and truck loading 3D.">
+  <meta property="og:locale" id="ogLocale" content="en_US">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" id="twTitle" content="Freight Class Calculator — NMFC Density Class (2025 Updated)">
+  <meta name="twitter:description" id="twDesc" content="Enter dimensions and weight to get density (PCF) and NMFC freight class instantly. Updated for the July 2025 NMFC changes.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #F8FAFC;          /* Slate 50 (Light Background) */
+      --panel: #FFFFFF;       /* White Card Panels */
+      --panel-2: #F1F5F9;     /* Slate 100 Panels */
+      --line: #E2E8F0;        /* Slate 200 Borders */
+      --line-soft: #F8FAFC;   /* Slate 50 Soft borders */
+      --ink: #0F172A;         /* Slate 900 Core Ink */
+      --ink-dim: #475569;     /* Slate 600 Sub titles */
+      --ink-faint: #94A3B8;   /* Slate 400 Annotations */
+      --cyan: #0284C7;        /* Slate Sky 600 Core */
+      --cyan-dim: rgba(2, 132, 199, 0.08);
+      --amber: #D97706;       /* Premium deep amber */
+      --amber-dim: rgba(217, 119, 6, 0.08);
+      --green: #059669;
+      --green-dim: rgba(5, 150, 105, 0.08);
+      --danger: #EF4444;
+      --danger-dim: rgba(239, 68, 68, 0.08);
+      --radius: 12px;
+      --sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* Header & Navigation */
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--cyan), var(--amber));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #FFFFFF; font-size: 16px;
+    }
+    .brand-text h1 { font-size: 16px; font-weight: 600; color: var(--ink); }
+    .brand-text span { font-size: 11px; color: var(--ink-faint); display: block; font-family: var(--mono); }
+
+    .lang-selector { display: flex; gap: 8px; }
+    .lang-btn {
+      background: var(--panel-2); border: 1px solid var(--line);
+      border-radius: 20px; padding: 6px 12px; cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--ink-dim); font-weight: 500; transition: all 0.2s;
+    }
+    .lang-btn.active {
+      border-color: var(--cyan); color: var(--cyan);
+      background: var(--cyan-dim); box-shadow: 0 0 10px rgba(2, 132, 199, 0.1);
+    }
+    .lang-btn:hover:not(.active) { border-color: var(--ink-dim); color: var(--ink); }
+
+    /* Cross-link to the sibling tool. Styled as navigation rather than a banner:
+       an ad-shaped block on a page carrying AdSense units invites misclicks. */
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .xsite-btn {
+      display: flex; align-items: center; gap: 6px; text-decoration: none;
+      background: rgba(217, 119, 6, 0.08); border: 1px solid var(--amber);
+      border-radius: 20px; padding: 6px 12px; white-space: nowrap;
+      font-size: 12px; font-weight: 600; color: var(--amber); transition: all 0.2s;
+    }
+    .xsite-btn:hover { background: var(--amber); color: #FFFFFF; }
+    .xsite-btn .xs-arrow { font-size: 11px; opacity: 0.75; }
+    @media (max-width: 560px) {
+      header { flex-wrap: wrap; gap: 10px; }
+      .header-right { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    }
+
+    .container {
+      max-width: 1200px; width: 100%;
+      margin: 0 auto; padding: 24px;
+      flex: 1; display: flex; flex-direction: column;
+    }
+
+    /* AdSense Placeholder */
+    .adsense-placeholder {
+      background: var(--panel); border: 1px dashed var(--line);
+      border-radius: var(--radius); padding: 12px; margin: 16px 0;
+      text-align: center; color: var(--ink-faint);
+      font-family: var(--mono); font-size: 11px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 90px; position: relative; overflow: hidden;
+    }
+    .adsense-placeholder::before {
+      content: 'AD'; position: absolute; top: 6px; left: 10px;
+      font-size: 9px; letter-spacing: 1px; color: var(--ink-faint); opacity: 0.6;
+    }
+
+    /* ---------- Hero ---------- */
+    .hero { text-align: center; margin: 8px 0 20px; }
+    .hero h2 { font-size: clamp(22px, 4vw, 32px); font-weight: 700; letter-spacing: -0.5px; }
+    .hero p { color: var(--ink-dim); font-size: 14px; max-width: 680px; margin: 6px auto 0; }
+    .hero .badge-2025 {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--green-dim); color: var(--green); border: 1px solid var(--green);
+      font-size: 11.5px; font-weight: 600; border-radius: 20px; padding: 4px 12px;
+      margin-bottom: 10px; font-family: var(--mono);
+    }
+
+    /* ---------- Calculator Layout ---------- */
+    .calc-section {
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 20px; align-items: start;
+    }
+    @media (max-width: 900px) { .calc-section { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .card-head {
+      padding: 14px 18px; border-bottom: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .card-head h3 { font-size: 14px; font-weight: 600; }
+    .card-head .n { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 1px; }
+    .card-body { padding: 18px; }
+
+    /* Mode tabs */
+    .mode-tabs { display: flex; gap: 6px; background: var(--panel-2); padding: 4px; border-radius: 10px; }
+    .mode-tab {
+      flex: 1; border: none; background: transparent; cursor: pointer;
+      font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--ink-dim);
+      padding: 8px 6px; border-radius: 8px; transition: all 0.15s; white-space: nowrap;
+    }
+    .mode-tab.active { background: var(--panel); color: var(--cyan); box-shadow: 0 1px 4px rgba(15,23,42,0.08); }
+
+    /* Unit toggle */
+    .unit-toggle {
+      display: inline-flex; border: 1px solid var(--line); border-radius: 20px; overflow: hidden;
+    }
+    .unit-toggle button {
+      border: none; background: var(--panel); cursor: pointer; padding: 6px 14px;
+      font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ink-dim); transition: all 0.15s;
+    }
+    .unit-toggle button.active { background: var(--cyan); color: #FFF; }
+
+    /* Inputs */
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block; font-size: 12px; font-weight: 600; color: var(--ink-dim); margin-bottom: 6px;
+    }
+    .form-label .hint { font-weight: 400; color: var(--ink-faint); font-size: 11px; }
+    .input-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .input-row.two { grid-template-columns: repeat(2, 1fr); }
+    .input-wrap { position: relative; }
+    .input-wrap .tag {
+      position: absolute; top: 5px; left: 10px; font-size: 9.5px;
+      color: var(--ink-faint); font-family: var(--mono); pointer-events: none;
+    }
+    input[type=number], input[type=text], select {
+      width: 100%; background: var(--panel-2); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 8px;
+      padding: 18px 10px 6px; font-family: var(--mono); font-size: 14px; font-weight: 600;
+      outline: none; transition: border-color 0.15s;
+    }
+    input[type=number]:focus, input[type=text]:focus, select:focus { border-color: var(--cyan); }
+    select { padding: 12px 10px; font-size: 12.5px; font-family: var(--sans); font-weight: 500; }
+    input::placeholder { color: var(--ink-faint); font-weight: 400; font-size: 12px; }
+    /* Hide number spinners for cleaner mono inputs */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+    .check-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-dim); cursor: pointer; }
+    .check-row input { accent-color: var(--cyan); width: 15px; height: 15px; cursor: pointer; }
+
+    .seg-toggle { display: flex; gap: 6px; }
+    .seg-toggle button {
+      flex: 1; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer;
+      font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink-dim);
+      padding: 9px 8px; border-radius: 8px; transition: all 0.15s;
+    }
+    .seg-toggle button.active { border-color: var(--cyan); background: var(--cyan-dim); color: var(--cyan); }
+
+    /* Batch table */
+    .batch-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .batch-table th {
+      font-family: var(--mono); font-size: 10px; color: var(--ink-faint);
+      text-align: left; padding: 4px 6px; letter-spacing: 0.5px;
+    }
+    .batch-table td { padding: 3px; }
+    .batch-table input { padding: 8px 8px; font-size: 12.5px; }
+    .batch-table .row-class {
+      font-family: var(--mono); font-weight: 700; color: var(--cyan);
+      text-align: center; white-space: nowrap; padding: 0 6px;
+    }
+    .row-del {
+      border: none; background: transparent; color: var(--ink-faint); cursor: pointer;
+      font-size: 15px; padding: 4px 6px; border-radius: 6px;
+    }
+    .row-del:hover { color: var(--danger); background: var(--danger-dim); }
+    .btn-add-row {
+      width: 100%; border: 1px dashed var(--line); background: transparent; cursor: pointer;
+      color: var(--ink-dim); font-family: var(--sans); font-size: 12.5px; font-weight: 600;
+      padding: 9px; border-radius: 8px; margin-top: 8px; transition: all 0.15s;
+    }
+    .btn-add-row:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+
+    /* ---------- Result Card ---------- */
+    .result-card { position: sticky; top: 84px; }
+    @media (max-width: 900px) { .result-card { position: static; } }
+
+    .result-hero {
+      display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; align-items: stretch;
+    }
+    @media (max-width: 480px) { .result-hero { grid-template-columns: 1fr; } }
+    .res-block {
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+      padding: 14px 16px; text-align: center;
+    }
+    .res-block .lbl { font-size: 11px; font-weight: 600; color: var(--ink-dim); letter-spacing: 0.4px; }
+    .res-block .val { font-family: var(--mono); font-weight: 700; font-size: 30px; line-height: 1.15; margin-top: 2px; }
+    .res-block .val span { font-size: 13px; color: var(--ink-faint); font-weight: 500; }
+    .res-block.main {
+      background: linear-gradient(135deg, rgba(2,132,199,0.07), rgba(2,132,199,0.02));
+      border-color: var(--cyan);
+    }
+    .res-block.main .val { font-size: 46px; color: var(--cyan); }
+    .res-basis {
+      font-family: var(--mono); font-size: 11.5px; color: var(--ink-dim);
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 12px; margin-top: 10px; text-align: center;
+    }
+    .res-basis b { color: var(--ink); }
+    .res-alt {
+      display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
+      font-size: 12px; color: var(--ink-dim); margin-top: 8px; text-align: center;
+    }
+    .res-alt .chip {
+      font-family: var(--mono); font-size: 11.5px; font-weight: 700;
+      border-radius: 14px; padding: 2px 10px;
+      background: var(--green-dim); color: var(--green); border: 1px solid var(--green);
+    }
+    .res-alt .chip.same { background: var(--panel-2); color: var(--ink-faint); border-color: var(--line); }
+
+    /* Totals strip (quantity > 1 / batch) */
+    .totals-strip {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; justify-content: center;
+    }
+    .tot-chip {
+      font-family: var(--mono); font-size: 11px; color: var(--ink-dim);
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px;
+    }
+    .tot-chip b { color: var(--ink); }
+
+    /* Cost gauge */
+    .gauge-wrap { margin-top: 14px; }
+    .gauge-title { font-size: 11px; font-weight: 600; color: var(--ink-dim); margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .gauge-bar {
+      position: relative; height: 14px; border-radius: 7px;
+      background: linear-gradient(90deg, #10B981 0%, #FBBF24 50%, #EF4444 100%);
+    }
+    .gauge-marker {
+      position: absolute; top: -4px; width: 4px; height: 22px; border-radius: 2px;
+      background: var(--ink); box-shadow: 0 0 0 2px #FFF; transition: left 0.3s;
+    }
+    .gauge-ends { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--ink-faint); margin-top: 4px; }
+
+    /* Warnings */
+    .warn-box {
+      display: flex; gap: 8px; align-items: flex-start;
+      background: var(--amber-dim); border: 1px solid var(--amber); border-radius: 8px;
+      padding: 9px 12px; margin-top: 10px; font-size: 12px; color: #92400E;
+    }
+    .warn-box.danger { background: var(--danger-dim); border-color: var(--danger); color: #991B1B; }
+    .warn-box.info { background: var(--cyan-dim); border-color: var(--cyan); color: #075985; }
+    .warn-box .w-ico { flex-shrink: 0; }
+
+    .disclaimer {
+      font-size: 11px; color: var(--ink-faint); margin-top: 12px; line-height: 1.5;
+      border-top: 1px solid var(--line); padding-top: 10px;
+    }
+
+    /* Action buttons */
+    .action-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .btn {
+      flex: 1; min-width: 130px; border: 1px solid var(--line); background: var(--panel-2);
+      cursor: pointer; font-family: var(--sans); font-size: 12.5px; font-weight: 600;
+      color: var(--ink-dim); padding: 10px 12px; border-radius: 8px; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+    .btn.primary { background: var(--cyan); border-color: var(--cyan); color: #FFF; }
+    .btn.primary:hover { background: #0369A1; }
+
+    /* History */
+    .history-wrap { margin-top: 12px; }
+    .history-title { font-size: 11px; font-weight: 600; color: var(--ink-faint); margin-bottom: 6px; }
+    .history-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .hist-chip {
+      font-family: var(--mono); font-size: 10.5px; cursor: pointer;
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px;
+      padding: 4px 10px; color: var(--ink-dim); transition: all 0.15s;
+    }
+    .hist-chip:hover { border-color: var(--cyan); color: var(--cyan); }
+    .hist-chip b { color: var(--cyan); }
+
+    /* Reverse mode result */
+    .rev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    @media (max-width: 480px) { .rev-grid { grid-template-columns: 1fr; } }
+    .rev-cell {
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+    }
+    .rev-cell .lbl { font-size: 10.5px; font-weight: 600; color: var(--ink-faint); }
+    .rev-cell .val { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--ink); margin-top: 2px; }
+    .rev-cell .val small { font-size: 11px; color: var(--ink-faint); font-weight: 500; }
+
+    /* Batch results table */
+    .batch-res-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+    .batch-res-table th {
+      font-family: var(--mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 0.5px;
+      text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line);
+    }
+    .batch-res-table th:first-child { text-align: left; }
+    .batch-res-table td {
+      font-family: var(--mono); font-size: 12px; text-align: right; padding: 6px 8px;
+      border-bottom: 1px solid var(--line-soft); color: var(--ink-dim);
+    }
+    .batch-res-table td:first-child { text-align: left; color: var(--ink); font-family: var(--sans); font-weight: 500; }
+    .batch-res-table td.cls { font-weight: 700; color: var(--cyan); }
+
+    /* ---------- Truck Viz ---------- */
+    .viz-section { margin-top: 24px; }
+    .viz-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .viz-card-body { padding: 10px 18px 18px; }
+    .viz {
+      width: 100%; height: auto; display: block;
+      background: linear-gradient(180deg, #FFFFFF, #F8FAFC);
+      border: 1px solid var(--line); border-radius: 10px;
+    }
+    .viz-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 14px 0 0; }
+    .viz-kpi {
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+      padding: 10px 12px; text-align: center;
+    }
+    .viz-kpi .lbl { font-size: 10.5px; font-weight: 600; color: var(--ink-faint); }
+    .viz-kpi .val { font-family: var(--mono); font-size: 19px; font-weight: 700; color: var(--ink); }
+    .viz-kpi .val span { font-size: 11px; color: var(--ink-faint); font-weight: 500; }
+    .legend { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+    .legend .li { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-dim); }
+    .legend .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+    .btn-show-viz {
+      width: 100%; max-width: 420px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px;
+      border: 1px solid var(--cyan); background: var(--cyan-dim); cursor: pointer;
+      color: var(--cyan); font-family: var(--sans); font-size: 13.5px; font-weight: 600;
+      padding: 12px 18px; border-radius: 10px; transition: all 0.15s;
+    }
+    .btn-show-viz:hover { background: var(--cyan); color: #FFF; }
+
+    /* ---------- Embed section ---------- */
+    .embed-box {
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+      font-family: var(--mono); font-size: 11px; color: var(--ink-dim);
+      padding: 10px 12px; white-space: pre-wrap; word-break: break-all; margin-top: 8px;
+    }
+
+    /* ---------- SEO content ---------- */
+    .seo-content { margin-top: 40px; max-width: 860px; margin-left: auto; margin-right: auto; }
+    .seo-content h2 { font-size: 20px; font-weight: 700; margin: 32px 0 10px; letter-spacing: -0.3px; }
+    .seo-content h3 { font-size: 15.5px; font-weight: 600; margin: 20px 0 8px; color: var(--ink); }
+    .seo-content p { font-size: 13.5px; color: var(--ink-dim); margin-bottom: 10px; }
+    .seo-content li { font-size: 13.5px; color: var(--ink-dim); margin: 4px 0 4px 18px; }
+    .seo-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 12px 0; }
+    .seo-table th {
+      background: var(--panel-2); color: var(--ink); font-weight: 600; text-align: left;
+      padding: 8px 10px; border: 1px solid var(--line);
+    }
+    .seo-table td { padding: 7px 10px; border: 1px solid var(--line); color: var(--ink-dim); font-family: var(--mono); font-size: 12px; }
+    .seo-table td:first-child { font-family: var(--sans); }
+    .seo-table tr.hl td { background: var(--cyan-dim); color: var(--cyan); font-weight: 700; }
+    .seo-faq details {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 8px;
+    }
+    .seo-faq summary { font-size: 13.5px; font-weight: 600; cursor: pointer; color: var(--ink); }
+    .seo-faq p { margin-top: 8px; }
+
+    /* ---------- Footer ---------- */
+    .bottom-info {
+      text-align: center; padding: 24px; border-top: 1px solid var(--line);
+      color: var(--ink-faint); font-size: 12px; margin-top: 40px; background: var(--panel);
+    }
+    .bottom-info a { color: var(--ink-dim); }
+
+    .hidden { display: none !important; }
+
+    /* ---------- Embed mode: strip chrome so the calculator iframes cleanly ---------- */
+    body.embed-mode header, body.embed-mode .hero, body.embed-mode .adsense-placeholder,
+    body.embed-mode .seo-content, body.embed-mode .bottom-info, body.embed-mode .viz-section,
+    body.embed-mode #embedSection, body.embed-mode #historyWrap { display: none !important; }
+    body.embed-mode .container { padding: 12px; }
+    .embed-credit { display: none; text-align: center; font-size: 11px; padding: 8px; }
+    .embed-credit a { color: var(--cyan); font-weight: 600; }
+    body.embed-mode .embed-credit { display: block; }
+
+    /* ---------- Print: white, minimal, report-only ---------- */
+    #printReport { display: none; }
+    @media print {
+      body * { visibility: hidden; }
+      #printReport, #printReport * { visibility: visible; }
+      #printReport {
+        display: block; position: absolute; left: 0; top: 0; width: 100%;
+        background: #FFF; color: #0F172A; font-family: var(--sans); padding: 24px;
+      }
+      .pr-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0F172A; padding-bottom: 10px; }
+      .pr-head .pr-brand { font-size: 18px; font-weight: 700; }
+      .pr-head .pr-meta { font-family: var(--mono); font-size: 10.5px; color: #475569; text-align: right; }
+      .pr-title { font-size: 13px; font-weight: 700; letter-spacing: 1px; margin: 16px 0 8px; }
+      .pr-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+      .pr-table th { text-align: left; padding: 5px 8px; border: 1px solid #CBD5E1; background: #F1F5F9; font-weight: 600; }
+      .pr-table td { padding: 5px 8px; border: 1px solid #CBD5E1; font-family: var(--mono); }
+      .pr-result { display: flex; gap: 14px; margin: 14px 0; }
+      .pr-result .pr-card { flex: 1; border: 1.5px solid #0F172A; border-radius: 8px; padding: 12px 16px; text-align: center; }
+      .pr-result .pr-card .l { font-size: 10.5px; font-weight: 600; color: #475569; letter-spacing: 0.5px; }
+      .pr-result .pr-card .v { font-family: var(--mono); font-size: 30px; font-weight: 700; }
+      .pr-note { font-size: 10px; color: #64748B; margin-top: 4px; }
+      .pr-gauge { margin: 10px 0; }
+      .pr-foot { border-top: 1px solid #CBD5E1; margin-top: 18px; padding-top: 8px; font-size: 9.5px; color: #64748B; line-height: 1.5; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">FC</div>
+      <div class="brand-text">
+        <h1 id="txtHeaderBrand">Freight Class Calculator</h1>
+        <span>NMFC DENSITY · LTL FREIGHT</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <a class="xsite-btn" href="https://pallet-loading-layout-optimizer.pages.dev/" target="_blank" rel="noopener">
+        <span id="txtCrossSite">Pallet Loading Optimizer</span><span class="xs-arrow">↗</span>
+      </a>
+      <div class="lang-selector">
+        <button class="lang-btn active" data-lang="en" onclick="switchLang('en')">🇺🇸 EN</button>
+        <button class="lang-btn" data-lang="ko" onclick="switchLang('ko')">🇰🇷 KO</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="badge-2025" id="txtBadge2025">✓ Updated for the July 2025 NMFC changes (13-sub density scale)</div>
+      <h2 id="txtHeroH">Freight Class Calculator</h2>
+      <p id="txtHeroP">Enter your shipment dimensions and weight to get the density (PCF) and estimated NMFC freight class instantly — with reverse calculation, multi-item batch mode, pallet presets and a 53 ft truck loading 3D preview.</p>
+    </div>
+
+    <!-- TOP AD (above results per spec: quick visibility without blocking content) -->
+    <div class="adsense-placeholder" style="min-height: 90px; margin: 4px 0 16px;">
+      <div>AdSense Top Banner (728×90 / responsive)</div>
+    </div>
+
+    <!-- ==============================================
+         CALCULATOR
+         ============================================== -->
+    <div class="calc-section">
+
+      <!-- INPUT CARD -->
+      <div class="card">
+        <div class="card-head">
+          <h3 id="txtInputTitle">Shipment Details</h3>
+          <div class="unit-toggle">
+            <button id="unitBtnImp" class="active" onclick="setUnits('imp')">in + lbs</button>
+            <button id="unitBtnMet" onclick="setUnits('met')">cm + kg</button>
+          </div>
+        </div>
+        <div class="card-body">
+
+          <!-- Mode tabs -->
+          <div class="mode-tabs" style="margin-bottom: 16px;">
+            <button class="mode-tab active" id="tabSingle" onclick="setMode('single')">Single Item</button>
+            <button class="mode-tab" id="tabBatch" onclick="setMode('batch')">Batch (Multi-Item)</button>
+            <button class="mode-tab" id="tabReverse" onclick="setMode('reverse')">Reverse</button>
+          </div>
+
+          <!-- ============ SINGLE MODE ============ -->
+          <div id="paneSingle">
+            <div class="form-group">
+              <label class="form-label" id="lblDims">Dimensions per handling unit <span class="hint" id="hintDims">(greatest straight-line dims, incl. projections)</span></label>
+              <div class="input-row">
+                <div class="input-wrap"><span class="tag" id="tagL">L (in)</span><input type="number" id="inL" min="0" step="any" value="48" oninput="onInput()"></div>
+                <div class="input-wrap"><span class="tag" id="tagW">W (in)</span><input type="number" id="inW" min="0" step="any" value="40" oninput="onInput()"></div>
+                <div class="input-wrap"><span class="tag" id="tagH">H (in)</span><input type="number" id="inH" min="0" step="any" value="45" oninput="onInput()"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-row two">
+                <div class="input-wrap"><span class="tag" id="tagWt">Weight (lbs)</span><input type="number" id="inWt" min="0" step="any" value="450" oninput="onInput()"></div>
+                <div class="input-wrap"><span class="tag" id="tagQty">Qty (units)</span><input type="number" id="inQty" min="1" step="1" value="1" oninput="onInput()"></div>
+              </div>
+            </div>
+
+            <!-- Load type -->
+            <div class="form-group">
+              <label class="form-label" id="lblLoadType">Load type</label>
+              <div class="seg-toggle">
+                <button id="loadPallet" class="active" onclick="setLoadType('pallet')">🟫 <span id="txtLoadPallet">Palletized</span></button>
+                <button id="loadFloor" onclick="setLoadType('floor')">📦 <span id="txtLoadFloor">Floor loaded (no pallet)</span></button>
+              </div>
+            </div>
+
+            <!-- Pallet options -->
+            <div id="palletOpts">
+              <div class="form-group">
+                <label class="form-label" id="lblPalletPreset">Pallet size preset</label>
+                <select id="palletPreset" onchange="onPalletPreset()">
+                  <option value="gma" id="optGma">GMA Standard — 48 × 40 in (default, North America)</option>
+                  <option value="drum" id="optDrum">Drum / Chemical — 48 × 48 in</option>
+                  <option value="bev" id="optBev">Beverage — 42 × 42 in</option>
+                  <option value="auto" id="optAuto">Automotive — 48 × 45 in</option>
+                  <option value="euro" id="optEuro">Euro / EPAL — 47.24 × 31.5 in (1200 × 800 mm)</option>
+                  <option value="half" id="optHalf">Half Pallet — 48 × 20 in</option>
+                  <option value="custom" id="optCustom">Custom (enter size)</option>
+                </select>
+              </div>
+              <div class="form-group" id="palletCustomRow" style="display:none;">
+                <div class="input-row">
+                  <div class="input-wrap"><span class="tag" id="tagPalL">Pal L (in)</span><input type="number" id="palL" min="0" step="any" value="48" oninput="onInput()"></div>
+                  <div class="input-wrap"><span class="tag" id="tagPalW">Pal W (in)</span><input type="number" id="palW" min="0" step="any" value="40" oninput="onInput()"></div>
+                  <div class="input-wrap"><span class="tag" id="tagPalWt">Pal wt (lbs)</span><input type="number" id="palWt" min="0" step="any" value="37" oninput="onInput()"></div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="check-row">
+                  <input type="checkbox" id="includePallet" checked onchange="onInput()">
+                  <span id="lblIncludePallet">Include pallet weight & height in density (recommended — NMFC measures the handling unit as tendered)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Commodity search -->
+            <div class="form-group">
+              <label class="form-label" id="lblCommodity">Commodity type <span class="hint" id="hintCommodity">(optional — flags items whose NMFC class is often fixed)</span></label>
+              <select id="commoditySel" onchange="onInput()">
+                <option value="">—</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ============ BATCH MODE ============ -->
+          <div id="paneBatch" class="hidden">
+            <label class="form-label" id="lblBatchHelp">Enter each item on its own row. Density and class are computed per row, plus a combined shipment class.</label>
+            <table class="batch-table">
+              <thead>
+                <tr>
+                  <th id="thName">ITEM</th><th class="thL">L</th><th class="thW">W</th><th class="thH">H</th><th id="thWt">WT</th><th id="thQty">QTY</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="batchRows"></tbody>
+            </table>
+            <button class="btn-add-row" onclick="addBatchRow()" id="btnAddRow">+ Add item</button>
+            <div class="form-group" style="margin-top:12px;">
+              <label class="check-row">
+                <input type="checkbox" id="batchIncludePallet" onchange="onInput()">
+                <span id="lblBatchPallet">Each row is a palletized unit (add GMA pallet 37 lbs / 6 in per unit)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- ============ REVERSE MODE ============ -->
+          <div id="paneReverse" class="hidden">
+            <div class="form-group">
+              <label class="form-label" id="lblRevClass">Target freight class</label>
+              <select id="revClass" onchange="onInput()"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="lblRevKnown">What do you know?</label>
+              <div class="seg-toggle">
+                <button id="revByWeight" class="active" onclick="setRevBasis('weight')"><span id="txtRevByWeight">I know the weight</span></button>
+                <button id="revByDims" onclick="setRevBasis('dims')"><span id="txtRevByDims">I know the dimensions</span></button>
+              </div>
+            </div>
+            <div class="form-group" id="revWeightRow">
+              <div class="input-row two">
+                <div class="input-wrap"><span class="tag" id="tagRevWt">Weight (lbs)</span><input type="number" id="revWt" min="0" step="any" value="500" oninput="onInput()"></div>
+              </div>
+            </div>
+            <div class="form-group hidden" id="revDimsRow">
+              <div class="input-row">
+                <div class="input-wrap"><span class="tag" id="tagRevL">L (in)</span><input type="number" id="revL" min="0" step="any" value="48" oninput="onInput()"></div>
+                <div class="input-wrap"><span class="tag" id="tagRevW">W (in)</span><input type="number" id="revW" min="0" step="any" value="40" oninput="onInput()"></div>
+                <div class="input-wrap"><span class="tag" id="tagRevH">H (in)</span><input type="number" id="revH" min="0" step="any" value="48" oninput="onInput()"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RESULT CARD -->
+      <div class="card result-card">
+        <div class="card-head">
+          <h3 id="txtResultTitle">Result</h3>
+          <span class="n" id="txtResultLive">LIVE · UPDATES AS YOU TYPE</span>
+        </div>
+        <div class="card-body" id="resultBody">
+
+          <!-- SINGLE / BATCH result -->
+          <div id="resMain">
+            <div class="result-hero">
+              <div class="res-block">
+                <div class="lbl" id="lblDensity">DENSITY</div>
+                <div class="val" id="valDensity">9.00 <span>PCF</span></div>
+                <div class="lbl" style="margin-top:6px; opacity:0.8;" id="lblCube">— ft³</div>
+              </div>
+              <div class="res-block main">
+                <div class="lbl" id="lblClass">ESTIMATED FREIGHT CLASS</div>
+                <div class="val" id="valClass">100</div>
+              </div>
+            </div>
+            <div class="res-basis" id="resBasis">9 – 10.5 PCF → <b>Class 100</b> (FCDC density guidelines)</div>
+            <div class="res-alt" id="resAlt">
+              <span id="lblAlt2025">Under the 2025 NMFC 13-sub density scale:</span>
+              <span class="chip" id="chipAlt">Class 100</span>
+            </div>
+            <div class="totals-strip" id="totalsStrip"></div>
+
+            <!-- Batch per-row results -->
+            <div id="batchResWrap" class="hidden">
+              <table class="batch-res-table" id="batchResTable"></table>
+            </div>
+
+            <!-- Cost gauge -->
+            <div class="gauge-wrap">
+              <div class="gauge-title"><span id="lblGauge">Relative cost position</span><span id="lblGaugeVal">—</span></div>
+              <div class="gauge-bar"><div class="gauge-marker" id="gaugeMarker" style="left: 50%;"></div></div>
+              <div class="gauge-ends"><span id="lblGaugeLo">Class 50 · cheapest</span><span id="lblGaugeHi">Class 500 · priciest</span></div>
+            </div>
+
+            <div id="warnings"></div>
+            <div id="commodityNote"></div>
+          </div>
+
+          <!-- REVERSE result -->
+          <div id="resReverse" class="hidden">
+            <div class="res-block main" style="text-align:center;">
+              <div class="lbl" id="lblRevTarget">TARGET CLASS</div>
+              <div class="val" id="revValClass">70</div>
+              <div class="lbl" style="margin-top:4px;" id="revDensRange">15 – 22.5 PCF required</div>
+            </div>
+            <div class="rev-grid" id="revGrid"></div>
+            <div class="warn-box info" style="margin-top:12px;">
+              <span class="w-ico">💡</span><span id="revTip">To get a LOWER class (cheaper), increase density: pack tighter, reduce box size, or ship heavier per cube.</span>
+            </div>
+          </div>
+
+          <div class="disclaimer" id="txtDisclaimer">This tool provides an estimated freight class based on density only. Actual classification depends on stowability, handling, and liability factors as determined by the official NMFC. For binding classification, consult NMFTA's ClassIT+ or your carrier.</div>
+
+          <div class="action-row">
+            <button class="btn" onclick="copyShareLink(this)" id="btnShare">🔗 Copy result link</button>
+            <button class="btn primary" onclick="savePdf()" id="btnPdf">📄 Save PDF report</button>
+          </div>
+
+          <div class="history-wrap" id="historyWrap">
+            <div class="history-title" id="lblHistory">Recent calculations</div>
+            <div class="history-chips" id="historyChips"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         TRUCK LOADING 3D (on-demand render: spec §3.2)
+         ============================================== -->
+    <div class="viz-section" id="vizSection">
+      <button class="btn-show-viz" id="btnShowViz" onclick="toggleViz()">🚛 <span id="txtShowViz">Show truck loading 3D preview</span></button>
+      <div class="card hidden" id="vizCard" style="margin-top: 14px;">
+        <div class="card-head">
+          <h3 id="txtVizTitle">Truck Loading Preview · Isometric 3D</h3>
+          <div class="viz-controls">
+            <select id="truckSel" onchange="drawTruck()" style="width:auto; padding: 8px 10px;">
+              <option value="van53" id="optVan53">53 ft Dry Van (630 × 98.5 × 108 in)</option>
+              <option value="ct40" id="optCt40">40 ft Container (474 × 92.5 × 94.5 in)</option>
+              <option value="ct20" id="optCt20">20 ft Container (232.5 × 92.5 × 94.5 in)</option>
+            </select>
+          </div>
+        </div>
+        <div class="viz-card-body">
+          <svg class="viz" id="truckSvg" viewBox="0 0 900 460"></svg>
+          <div class="legend">
+            <div class="li"><span class="sw" style="background:#D2A06A"></span><span id="txtLegCargo">Your handling units</span></div>
+            <div class="li"><span class="sw" style="background:#8B5A2B"></span><span id="txtLegPallet">Pallet</span></div>
+            <div class="li"><span class="sw" style="background:#CBD5E1"></span><span id="txtLegTruck">Trailer interior</span></div>
+          </div>
+          <div class="viz-kpis">
+            <div class="viz-kpi"><div class="lbl" id="lblVkFit">Units that fit</div><div class="val" id="vkFit">—</div></div>
+            <div class="viz-kpi"><div class="lbl" id="lblVkUtil">Volume utilization</div><div class="val" id="vkUtil">— <span>%</span></div></div>
+            <div class="viz-kpi"><div class="lbl" id="lblVkDead">Dead space</div><div class="val" id="vkDead">— <span>ft³</span></div></div>
+            <div class="viz-kpi"><div class="lbl" id="lblVkLinear">Linear feet used</div><div class="val" id="vkLinear">— <span>ft</span></div></div>
+          </div>
+          <div id="vizWarnings"></div>
+        </div>
+      </div>
+      <!-- Post-visualization ad (spec §4: re-exposure after dwell) -->
+      <div class="adsense-placeholder hidden" id="vizAd" style="min-height: 90px;">
+        <div>AdSense Banner below 3D preview (728×90 / responsive)</div>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         EMBED WIDGET (backlink strategy, spec §2.10)
+         ============================================== -->
+    <div class="card" id="embedSection" style="margin-top: 24px;">
+      <div class="card-head"><h3 id="txtEmbedTitle">Embed this calculator on your site — free</h3></div>
+      <div class="card-body">
+        <p style="font-size: 13px; color: var(--ink-dim);" id="txtEmbedHelp">Copy the snippet below into your logistics blog or forwarder site. The widget stays free; the credit link must remain visible.</p>
+        <div class="embed-box" id="embedCode">&lt;iframe src="https://freight-class-density-calculator.pages.dev/?embed=1" width="100%" height="720" style="border:1px solid #E2E8F0;border-radius:12px;" title="Freight Class Calculator"&gt;&lt;/iframe&gt;
+&lt;p style="font-size:12px"&gt;Powered by &lt;a href="https://freight-class-density-calculator.pages.dev/"&gt;Freight Class Calculator&lt;/a&gt;&lt;/p&gt;</div>
+        <div class="action-row" style="max-width: 240px;">
+          <button class="btn" onclick="copyEmbed(this)" id="btnCopyEmbed">📋 Copy embed code</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         CRAWLABLE CONTENT (rendered statically in English so search engines
+         get it without executing JS; switchLang() re-renders for ko)
+         ============================================== -->
+    <section class="seo-content" id="seoContent">
+      <h2 id="seoWhatH">What is a freight class?</h2>
+      <p id="seoWhatP1">Freight class is a standardized rating (50 to 500, in 18 steps) defined by the National Motor Freight Classification (NMFC®) that LTL carriers in the United States use to price shipments. A lower class generally means cheaper freight. The class is determined by four transportation characteristics: <b>density</b> (pounds per cubic foot), <b>stowability</b> (how easily it loads with other freight), <b>handling</b> (special care needs), and <b>liability</b> (value, fragility, hazard risk).</p>
+      <p id="seoWhatP2">For most general commodities, density is the dominant factor: measure the handling unit as tendered (pallet included), compute cubic feet as L × W × H ÷ 1,728 in inches, then divide the weight in pounds by the cubic feet to get PCF (pounds per cubic foot). This calculator applies the official FCDC density guidelines to that number — and also shows the July 2025 13-sub density scale result used by density-based NMFC items.</p>
+
+      <h2 id="seo2025H">What changed in July 2025 (NMFC Docket 2025-1)?</h2>
+      <p id="seo2025P">On July 19, 2025, the NMFC moved thousands of commodity-specific items to density-based classification and expanded the FCDC density scale from 11 to 13 sub-provisions. Items with no unusual handling, stowability or liability characteristics now reference the standard 13-sub density progression below. Commodities with special characteristics keep uniquely assigned classes — which is why a density estimate can differ from your item's actual NMFC class.</p>
+
+      <h2 id="seoTableH">Freight class density chart (both scales)</h2>
+      <table class="seo-table" id="classTable">
+        <thead><tr><th id="thDensity">Density (lbs / ft³)</th><th id="thClassic">FCDC guidelines class</th><th id="th2025">2025 13-sub scale class</th></tr></thead>
+        <tbody id="classTableBody">
+          <tr><td>50 +</td><td>50</td><td>50 (sub 13)</td></tr>
+          <tr><td>35 – 50</td><td>55</td><td>55 (sub 12)</td></tr>
+          <tr><td>30 – 35</td><td>60</td><td>60 (sub 11)</td></tr>
+          <tr><td>22.5 – 30</td><td>65</td><td>65 (sub 10)</td></tr>
+          <tr><td>15 – 22.5</td><td>70</td><td>70 (sub 9)</td></tr>
+          <tr><td>13.5 – 15</td><td>77.5</td><td>85 (sub 8)</td></tr>
+          <tr><td>12 – 13.5</td><td>85</td><td>85 (sub 8)</td></tr>
+          <tr><td>10.5 – 12</td><td>92.5</td><td>92.5 (sub 7)</td></tr>
+          <tr><td>10 – 10.5</td><td>100</td><td>92.5 (sub 7)</td></tr>
+          <tr><td>9 – 10</td><td>100</td><td>100 (sub 6)</td></tr>
+          <tr><td>8 – 9</td><td>110</td><td>100 (sub 6)</td></tr>
+          <tr><td>7 – 8</td><td>125</td><td>125 (sub 5)</td></tr>
+          <tr><td>6 – 7</td><td>150</td><td>125 (sub 5)</td></tr>
+          <tr><td>5 – 6</td><td>175</td><td>175 (sub 4)</td></tr>
+          <tr><td>4 – 5</td><td>200</td><td>175 (sub 4)</td></tr>
+          <tr><td>3 – 4</td><td>250</td><td>250 (sub 3)</td></tr>
+          <tr><td>2 – 3</td><td>300</td><td>250 (sub 3)</td></tr>
+          <tr><td>1 – 2</td><td>400</td><td>300 (sub 2)</td></tr>
+          <tr><td>&lt; 1</td><td>500</td><td>400 (sub 1)</td></tr>
+        </tbody>
+      </table>
+      <p id="seoTableNote" style="font-size:12px;">Source: NMFTA FCDC Density Guidelines and the 2025 NMFC Changes FAQ (Docket 2025-1). The 13-sub scale applies to density-rated NMFC items; the FCDC guidelines remain the general estimation reference.</p>
+
+      <h2 id="seoCommodityH">Typical freight classes by commodity (examples)</h2>
+      <p id="seoCommodityP">These are commonly quoted examples only — many items were re-classified to density-based ratings in 2025, and your NMFC item may differ. Always verify with ClassIT+ or your carrier.</p>
+      <table class="seo-table">
+        <thead><tr><th id="thCom">Commodity</th><th id="thTypCls">Commonly seen class</th><th id="thComNote">Note</th></tr></thead>
+        <tbody id="commodityTableBody">
+          <tr><td>Bricks, ceramic tile</td><td>50 – 55</td><td>Very dense, durable</td></tr>
+          <tr><td>Car engines / transmissions</td><td>70 – 85</td><td>Dense machinery</td></tr>
+          <tr><td>New tires</td><td>70</td><td>Often fixed by NMFC item</td></tr>
+          <tr><td>Boxed appliances</td><td>92.5 – 125</td><td>Density-based since 2025</td></tr>
+          <tr><td>Computers / electronics</td><td>92.5 – 150</td><td>Liability can raise class</td></tr>
+          <tr><td>Boxed clothing</td><td>100 – 175</td><td>By density</td></tr>
+          <tr><td>Upholstered furniture</td><td>100 – 250</td><td>Moved to density scale in 2025</td></tr>
+          <tr><td>Mattresses</td><td>250 – 300</td><td>Light & bulky</td></tr>
+          <tr><td>Assembled chairs</td><td>175 – 250</td><td>Poor stowability</td></tr>
+          <tr><td>Ping pong balls</td><td>500</td><td>Classic lowest-density example</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="seoFeesH">What else affects your LTL price? (accessorial fees)</h2>
+      <p id="seoFeesP">Freight class sets the base rate, but accessorial fees are added on top when the shipment needs extra service. Exact amounts vary by carrier and tariff — these are the common triggers:</p>
+      <ul id="seoFeesList">
+        <li id="fee1"><b>Liftgate fee</b> — pickup/delivery location has no dock, so the truck needs a liftgate platform.</li>
+        <li id="fee2"><b>Residential delivery surcharge</b> — the address is a home or a business in a residential zone.</li>
+        <li id="fee3"><b>Limited access fee</b> — schools, military bases, construction sites, storage units and other hard-to-serve stops.</li>
+        <li id="fee4"><b>Reclassification / reweigh fee</b> — the carrier inspects and finds a different class or weight than the BOL states. Getting the class right up front (what this tool helps estimate) avoids exactly this fee.</li>
+        <li id="fee5"><b>Detention</b> — the driver waits beyond the free loading/unloading window.</li>
+        <li id="fee6"><b>Fuel surcharge</b> — a percentage indexed to diesel prices, applied to nearly all LTL freight.</li>
+      </ul>
+
+      <h2 id="seoFaqH">Frequently Asked Questions (FAQ)</h2>
+      <div class="seo-faq" id="seoFaqList">
+        <details open><summary>How is freight density calculated?</summary><p>Multiply the greatest straight-line length, width and height of the handling unit in inches (including pallet and any overhang), divide by 1,728 to get cubic feet, then divide the weight in pounds by the cubic feet. Example from the NMFC: a 48 × 40 × 45 in pallet weighing 450 lbs is 50 ft³, so 450 ÷ 50 = 9.00 PCF → Class 100.</p></details>
+        <details><summary>Does the pallet count toward dimensions and weight?</summary><p>Yes. The NMFC measures the handling unit "as tendered for shipment," which includes the pallet's own height and weight, and any overhanging projections. Excluding the pallet usually overstates density and can get the shipment reclassified at inspection.</p></details>
+        <details><summary>What changed with the 2025 NMFC update?</summary><p>Effective July 19, 2025 (Docket 2025-1), the NMFC moved many commodity items to density-based classification and expanded the density scale to 13 sub-provisions — sub 11 became 30–35 PCF at class 60, sub 12 is 35–50 PCF at class 55, and sub 13 is 50+ PCF at class 50. Items with unusual handling, stowability or liability characteristics keep uniquely assigned classes.</p></details>
+        <details><summary>Why can my actual class differ from the density estimate?</summary><p>Density is only one of four classification factors. Items with special stowability, handling or liability characteristics (hazmat, fragile, very long, high-value…) carry NMFC-assigned classes that override the density estimate. Some commodities also have their class fixed by a specific NMFC item number.</p></details>
+        <details><summary>How do I calculate the class for a multi-item pallet or shipment?</summary><p>Per NMFC Item 110 Sec. 8(d), density is calculated per handling unit; but when shipping papers show only a total weight, density may be calculated from the total weight and total cube. The Batch mode of this calculator shows both: per-row classes and the combined-shipment result.</p></details>
+        <details><summary>Can I lower my freight class to save money?</summary><p>Often yes — densify the shipment. Shrink carton sizes, compress soft goods, and avoid pyramid-shaped or overhanging loads. Use the Reverse mode: pick the class you want and it shows the maximum cube (or minimum weight) needed to reach it. Never misdeclare — reclassification fees usually cost more than the savings.</p></details>
+      </div>
+    </section>
+
+    <!-- BOTTOM LEADERBOARD AD -->
+    <div class="adsense-placeholder" style="max-width: 970px; width: 100%; margin: 24px auto 0;">
+      <div>AdSense Bottom Banner (728×90 / 970×90)</div>
+    </div>
+
+  </div>
+
+  <div class="embed-credit"><a href="https://freight-class-density-calculator.pages.dev/" target="_blank" rel="noopener" id="txtEmbedCredit">Powered by Freight Class Calculator</a></div>
+
+  <!-- FOOTER -->
+  <footer class="bottom-info">
+    <p>© 2026 Freight Class Calculator. All rights reserved.</p>
+    <p style="margin-top: 6px; opacity: 0.7;" id="txtFooterDesc">Free NMFC freight class estimator with density calculation, reverse lookup, batch mode and truck loading visualization. Not affiliated with NMFTA.</p>
+  </footer>
+
+  <!-- PRINT-ONLY PDF REPORT (white, minimal-line, spec §2.9) -->
+  <div id="printReport"></div>
+
+  <!-- ========================================================
+       STRUCTURED DATA (JSON-LD)
+       Answers must stay in sync with the visible FAQ above — Google treats
+       schema that isn't on the page as a violation.
+       ======================================================== -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://freight-class-density-calculator.pages.dev/#app",
+        "name": "Freight Class Calculator",
+        "url": "https://freight-class-density-calculator.pages.dev/",
+        "description": "Free freight class calculator. Enter dimensions and weight to get density (PCF) and NMFC freight class instantly — updated for the July 2025 NMFC changes (13-sub density scale).",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "All",
+        "browserRequirements": "Requires JavaScript",
+        "inLanguage": ["en", "ko"],
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "Density (PCF) and NMFC freight class estimation",
+          "FCDC density guidelines and 2025 13-sub density scale side by side",
+          "Reverse calculator: target class to required cube or weight",
+          "Multi-item batch mode with combined shipment class",
+          "Pallet size presets with overhang and limit warnings",
+          "53 ft dry van and container loading 3D visualization",
+          "Shareable result links and printable PDF report"
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://freight-class-density-calculator.pages.dev/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How is freight density calculated?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Multiply the greatest straight-line length, width and height of the handling unit in inches (including pallet and any overhang), divide by 1,728 to get cubic feet, then divide the weight in pounds by the cubic feet. Example from the NMFC: a 48 × 40 × 45 in pallet weighing 450 lbs is 50 ft³, so 450 ÷ 50 = 9.00 PCF → Class 100." }
+          },
+          {
+            "@type": "Question",
+            "name": "Does the pallet count toward dimensions and weight?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes. The NMFC measures the handling unit as tendered for shipment, which includes the pallet's own height and weight, and any overhanging projections. Excluding the pallet usually overstates density and can get the shipment reclassified at inspection." }
+          },
+          {
+            "@type": "Question",
+            "name": "What changed with the 2025 NMFC update?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Effective July 19, 2025 (Docket 2025-1), the NMFC moved many commodity items to density-based classification and expanded the density scale to 13 sub-provisions — sub 11 became 30–35 PCF at class 60, sub 12 is 35–50 PCF at class 55, and sub 13 is 50+ PCF at class 50. Items with unusual handling, stowability or liability characteristics keep uniquely assigned classes." }
+          },
+          {
+            "@type": "Question",
+            "name": "Why can my actual class differ from the density estimate?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Density is only one of four classification factors. Items with special stowability, handling or liability characteristics (hazmat, fragile, very long, high-value) carry NMFC-assigned classes that override the density estimate. Some commodities also have their class fixed by a specific NMFC item number." }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I calculate the class for a multi-item pallet or shipment?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Per NMFC Item 110 Sec. 8(d), density is calculated per handling unit; but when shipping papers show only a total weight, density may be calculated from the total weight and total cube. The Batch mode of this calculator shows both: per-row classes and the combined-shipment result." }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I lower my freight class to save money?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Often yes — densify the shipment. Shrink carton sizes, compress soft goods, and avoid pyramid-shaped or overhanging loads. Use the Reverse mode: pick the class you want and it shows the maximum cube (or minimum weight) needed to reach it. Never misdeclare — reclassification fees usually cost more than the savings." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- ========================================================
+       CORE ENGINE: CLASSIFICATION DATA & TRANSLATIONS
+       ======================================================== -->
+  <script>
+    'use strict';
+
+    // ---------- NMFC classification scales ----------
+    // FCDC Density Guidelines (official 18-class table, NMFTA attachment ©2021).
+    // Entries are checked top-down: first row whose min <= density wins.
+    const SCALE_FCDC = [
+      { min: 50,   cls: '50'   }, { min: 35,   cls: '55'   }, { min: 30,   cls: '60'   },
+      { min: 22.5, cls: '65'   }, { min: 15,   cls: '70'   }, { min: 13.5, cls: '77.5' },
+      { min: 12,   cls: '85'   }, { min: 10.5, cls: '92.5' }, { min: 9,    cls: '100'  },
+      { min: 8,    cls: '110'  }, { min: 7,    cls: '125'  }, { min: 6,    cls: '150'  },
+      { min: 5,    cls: '175'  }, { min: 4,    cls: '200'  }, { min: 3,    cls: '250'  },
+      { min: 2,    cls: '300'  }, { min: 1,    cls: '400'  }, { min: 0,    cls: '500'  }
+    ];
+
+    // 13-sub density scale, NMFC Docket 2025-1, effective 2025-07-19.
+    // Subs 1-10 carried over from the 11-sub scale; sub 11 amended to 30-35 pcf
+    // at class 60, sub 12 added (35-50 -> 55), sub 13 added (50+ -> 50).
+    const SCALE_2025 = [
+      { min: 50,   cls: '50',   sub: 13 }, { min: 35,   cls: '55',   sub: 12 },
+      { min: 30,   cls: '60',   sub: 11 }, { min: 22.5, cls: '65',   sub: 10 },
+      { min: 15,   cls: '70',   sub: 9  }, { min: 12,   cls: '85',   sub: 8  },
+      { min: 10,   cls: '92.5', sub: 7  }, { min: 8,    cls: '100',  sub: 6  },
+      { min: 6,    cls: '125',  sub: 5  }, { min: 4,    cls: '175',  sub: 4  },
+      { min: 2,    cls: '250',  sub: 3  }, { min: 1,    cls: '300',  sub: 2  },
+      { min: 0,    cls: '400',  sub: 1  }
+    ];
+
+    // All 18 classes in cheap->expensive order, for the cost gauge and reverse mode.
+    const ALL_CLASSES = ['50','55','60','65','70','77.5','85','92.5','100','110','125','150','175','200','250','300','400','500'];
+
+    function classify(density, scale) {
+      for (let i = 0; i < scale.length; i++) {
+        if (density >= scale[i].min) {
+          return { ...scale[i], max: i === 0 ? Infinity : scale[i - 1].min };
+        }
+      }
+      return { ...scale[scale.length - 1], max: scale[scale.length - 2].min };
+    }
+
+    // Density range for a target class on the FCDC scale (reverse mode).
+    function rangeForClass(cls) {
+      const i = SCALE_FCDC.findIndex(e => e.cls === cls);
+      if (i < 0) return null;
+      return { min: SCALE_FCDC[i].min, max: i === 0 ? Infinity : SCALE_FCDC[i - 1].min };
+    }
+
+    // ---------- Pallet presets (inches / lbs) ----------
+    // Tare weights are typical mid-range figures; GMA wood pallets run 33-48 lbs.
+    const PALLETS = {
+      gma:  { l: 48,    w: 40,   h: 6,   wt: 37 },
+      drum: { l: 48,    w: 48,   h: 6,   wt: 40 },
+      bev:  { l: 42,    w: 42,   h: 6,   wt: 35 },
+      auto: { l: 48,    w: 45,   h: 6,   wt: 40 },
+      euro: { l: 47.24, w: 31.5, h: 5.7, wt: 55 },
+      half: { l: 48,    w: 20,   h: 5.5, wt: 25 }
+    };
+
+    // ---------- Truck / container interiors (inches) ----------
+    const TRUCKS = {
+      van53: { l: 630,   w: 98.5, h: 108,  payload: 45000 },
+      ct40:  { l: 474,   w: 92.5, h: 94.5, payload: 59000 },
+      ct20:  { l: 232.5, w: 92.5, h: 94.5, payload: 55000 }
+    };
+
+    // ---------- Common commodities (NMFC override awareness, spec 2.8) ----------
+    // classNote is indicative only and is always shown with a verification warning.
+    const COMMODITIES = [
+      { key: 'bricks',      en: 'Bricks / ceramic tile',        ko: '벽돌 / 세라믹 타일',        cls: '50–55'   },
+      { key: 'engines',     en: 'Car engines / transmissions',  ko: '자동차 엔진 / 변속기',      cls: '70–85'   },
+      { key: 'tires',       en: 'New tires',                    ko: '신품 타이어',               cls: '70', fixed: true },
+      { key: 'appliances',  en: 'Boxed appliances',             ko: '박스 포장 가전',            cls: '92.5–125' },
+      { key: 'electronics', en: 'Computers / electronics',      ko: '컴퓨터 / 전자제품',         cls: '92.5–150' },
+      { key: 'clothing',    en: 'Boxed clothing',               ko: '박스 포장 의류',            cls: '100–175' },
+      { key: 'furniture',   en: 'Upholstered furniture',        ko: '쿠션 가구(소파 등)',        cls: '100–250' },
+      { key: 'chairs',      en: 'Assembled chairs',             ko: '조립 완료 의자',            cls: '175–250' },
+      { key: 'mattresses',  en: 'Mattresses',                   ko: '매트리스',                  cls: '250–300' },
+      { key: 'machinery',   en: 'Machinery parts (boxed)',      ko: '기계 부품(박스)',           cls: '60–100'  }
+    ];
+
+    // ---------- i18n dictionary ----------
+    const translations = {
+      en: {
+        seoTitle: "Freight Class Calculator — NMFC Density Class (2025 Updated) with Truck Loading 3D",
+        seoDesc: "Free freight class calculator. Enter dimensions and weight to get density (PCF) and NMFC freight class instantly — updated for the July 2025 NMFC changes (13-sub density scale). Reverse calculator, multi-item batch mode, pallet presets and 53ft truck loading 3D visualization.",
+        txtHeaderBrand: "Freight Class Calculator",
+        txtCrossSite: "Pallet Loading Optimizer",
+        txtBadge2025: "✓ Updated for the July 2025 NMFC changes (13-sub density scale)",
+        txtHeroH: "Freight Class Calculator",
+        txtHeroP: "Enter your shipment dimensions and weight to get the density (PCF) and estimated NMFC freight class instantly — with reverse calculation, multi-item batch mode, pallet presets and a 53 ft truck loading 3D preview.",
+        txtInputTitle: "Shipment Details",
+        tabSingle: "Single Item", tabBatch: "Batch (Multi-Item)", tabReverse: "Reverse",
+        lblDims: 'Dimensions per handling unit <span class="hint">(greatest straight-line dims, incl. projections)</span>',
+        lblLoadType: "Load type",
+        txtLoadPallet: "Palletized", txtLoadFloor: "Floor loaded (no pallet)",
+        lblPalletPreset: "Pallet size preset",
+        optGma: "GMA Standard — 48 × 40 in (default, North America)",
+        optDrum: "Drum / Chemical — 48 × 48 in",
+        optBev: "Beverage — 42 × 42 in",
+        optAuto: "Automotive — 48 × 45 in",
+        optEuro: "Euro / EPAL — 47.24 × 31.5 in (1200 × 800 mm)",
+        optHalf: "Half Pallet — 48 × 20 in",
+        optCustom: "Custom (enter size)",
+        lblIncludePallet: "Include pallet weight & height in density (recommended — NMFC measures the handling unit as tendered)",
+        lblCommodity: 'Commodity type <span class="hint">(optional — flags items whose NMFC class is often fixed)</span>',
+        lblBatchHelp: "Enter each item on its own row. Density and class are computed per row, plus a combined shipment class.",
+        thName: "ITEM", thWt: "WT", thQty: "QTY",
+        btnAddRow: "+ Add item",
+        lblBatchPallet: "Each row is a palletized unit (add GMA pallet 37 lbs / 6 in per unit)",
+        lblRevClass: "Target freight class",
+        lblRevKnown: "What do you know?",
+        txtRevByWeight: "I know the weight", txtRevByDims: "I know the dimensions",
+        txtResultTitle: "Result", txtResultLive: "LIVE · UPDATES AS YOU TYPE",
+        lblDensity: "DENSITY", lblClass: "ESTIMATED FREIGHT CLASS",
+        lblAlt2025: "Under the 2025 NMFC 13-sub density scale:",
+        altSame: "same class", basisFcdc: "FCDC density guidelines",
+        lblGauge: "Relative cost position",
+        lblGaugeLo: "Class 50 · cheapest", lblGaugeHi: "Class 500 · priciest",
+        lblRevTarget: "TARGET CLASS",
+        revTip: "To get a LOWER class (cheaper), increase density: pack tighter, reduce box size, or ship heavier per cube.",
+        txtDisclaimer: "This tool provides an estimated freight class based on density only. Actual classification depends on stowability, handling, and liability factors as determined by the official NMFC. For binding classification, consult NMFTA's ClassIT+ or your carrier.",
+        btnShare: "🔗 Copy result link", btnShareDone: "✓ Link copied!",
+        btnPdf: "📄 Save PDF report",
+        lblHistory: "Recent calculations",
+        txtShowViz: "Show truck loading 3D preview", txtHideViz: "Hide truck loading 3D preview",
+        txtVizTitle: "Truck Loading Preview · Isometric 3D",
+        optVan53: "53 ft Dry Van (630 × 98.5 × 108 in)",
+        optCt40: "40 ft Container (474 × 92.5 × 94.5 in)",
+        optCt20: "20 ft Container (232.5 × 92.5 × 94.5 in)",
+        txtLegCargo: "Your handling units", txtLegPallet: "Pallet", txtLegTruck: "Trailer interior",
+        lblVkFit: "Units that fit", lblVkUtil: "Volume utilization", lblVkDead: "Dead space", lblVkLinear: "Linear feet used",
+        txtEmbedTitle: "Embed this calculator on your site — free",
+        txtEmbedHelp: "Copy the snippet below into your logistics blog or forwarder site. The widget stays free; the credit link must remain visible.",
+        btnCopyEmbed: "📋 Copy embed code", btnCopyEmbedDone: "✓ Copied!",
+        txtFooterDesc: "Free NMFC freight class estimator with density calculation, reverse lookup, batch mode and truck loading visualization. Not affiliated with NMFTA.",
+        // dynamic strings
+        dTotal: "Total", dUnits: "units", dCube: "cube", dWeight: "weight",
+        dPerUnit: "per handling unit",
+        wHeight: "Total height {h} exceeds the ~96 in limit many LTL carriers apply to standard pallet positions. Confirm with your carrier.",
+        wWeight: "Unit weight {w} exceeds the typical per-pallet limit (~2,500–4,600 lbs depending on carrier). Confirm with your carrier.",
+        wOverhang: "Cargo footprint is larger than the selected pallet ({c} vs {p}). Overhang can be charged as two pallet positions and voids some damage claims.",
+        wFloor: "Floor loading: some carriers require palletization; floor-loaded freight may need carrier approval and can limit damage-claim coverage.",
+        wCommodityFixed: "{name} is commonly governed by a specific NMFC item (often around class {cls}), which overrides the density estimate. Verify before booking.",
+        wCommodityRange: "{name} typically falls around class {cls} depending on density and packaging. Your NMFC item may differ from the density estimate.",
+        revNeedDensity: "Required density", revMaxCube: "Max cube at {wt}", revMinCube: "Min cube at {wt}",
+        revCubeExample: "≈ {side} cube side", revMinWt: "Min weight for {cube}", revMaxWt: "Max weight for {cube}",
+        revOrMore: "or more", revLessThan: "less than",
+        bthCombined: "Combined shipment (total wt ÷ total cube)", bthRow: "Item", bthDensity: "PCF", bthClass: "CLASS",
+        bthWavg: "Weight-weighted avg class (reference)",
+        vkTiers: "{n} tiers high", vizPayload: "Total weight {w} exceeds the ~{p} lbs payload of this trailer.",
+        vizNone: "Enter valid dimensions first — nothing to draw yet.",
+        histNow: "now", prTitle: "FREIGHT CLASS REPORT", prGenerated: "Generated", prRef: "Ref",
+        prShipment: "SHIPMENT", prDims: "Dimensions (per unit)", prWeight: "Weight (per unit)", prQty: "Quantity",
+        prLoad: "Load type", prPalletized: "Palletized", prFloor: "Floor loaded", prPallet: "Pallet",
+        prCube: "Cube (per unit)", prResult: "RESULT", prDensity: "DENSITY (PCF)", prClass: "ESTIMATED CLASS",
+        prBasis: "Basis", prAlt: "2025 13-sub scale", prGauge: "RELATIVE COST POSITION",
+        prCommodity: "Commodity note", prDisclaimer: "Estimated class based on density only. Actual classification depends on stowability, handling and liability per the official NMFC. For binding classification consult NMFTA ClassIT+ or your carrier. Generated by Freight Class Calculator — freight-class-density-calculator.pages.dev"
+      },
+      ko: {
+        seoTitle: "화물 클래스 계산기 — NMFC 밀도 등급 (2025 개정 반영) | Freight Class Calculator",
+        seoDesc: "무료 화물 클래스 계산기. 치수와 무게만 입력하면 밀도(PCF)와 NMFC 화물 등급을 즉시 계산합니다. 2025년 7월 NMFC 개정(13-sub 밀도 스케일) 반영, 역산 계산기, 다중 품목 배치 모드, 트럭 적재 3D 시각화 지원.",
+        txtHeaderBrand: "화물 클래스 계산기",
+        txtCrossSite: "팔레트 적재 최적화기",
+        txtBadge2025: "✓ 2025년 7월 NMFC 개정(13-sub 밀도 스케일) 반영",
+        txtHeroH: "Freight Class 계산기",
+        txtHeroP: "화물의 치수와 무게를 입력하면 밀도(PCF)와 예상 NMFC 화물 등급이 즉시 계산됩니다. 역산 계산, 다중 품목 배치 모드, 팔레트 프리셋, 53ft 트럭 적재 3D 미리보기까지 지원합니다.",
+        txtInputTitle: "화물 정보 입력",
+        tabSingle: "단일 품목", tabBatch: "배치(다중 품목)", tabReverse: "역산",
+        lblDims: '핸들링 유닛 치수 <span class="hint">(돌출부 포함 최대 직선 치수)</span>',
+        lblLoadType: "적재 방식",
+        txtLoadPallet: "팔레트 적재", txtLoadFloor: "바닥 적재 (팔레트 없음)",
+        lblPalletPreset: "팔레트 규격 프리셋",
+        optGma: "GMA 표준 — 48 × 40 in (기본, 북미 표준)",
+        optDrum: "드럼/화학용 — 48 × 48 in",
+        optBev: "음료용 — 42 × 42 in",
+        optAuto: "자동차 부품용 — 48 × 45 in",
+        optEuro: "유로/EPAL — 47.24 × 31.5 in (1200 × 800 mm)",
+        optHalf: "하프 팔레트 — 48 × 20 in",
+        optCustom: "직접 입력 (Custom)",
+        lblIncludePallet: "밀도 계산에 팔레트 무게·높이 포함 (권장 — NMFC는 팔레트 포함 상태로 측정)",
+        lblCommodity: '품목 종류 <span class="hint">(선택 — NMFC 등급이 고정되는 품목 안내)</span>',
+        lblBatchHelp: "품목별로 행을 추가해 입력하세요. 행별 밀도/등급과 전체 화물 통합 등급이 함께 계산됩니다.",
+        thName: "품목", thWt: "무게", thQty: "수량",
+        btnAddRow: "+ 품목 추가",
+        lblBatchPallet: "각 행이 팔레트 유닛 (행마다 GMA 팔레트 37 lbs / 6 in 추가)",
+        lblRevClass: "목표 화물 클래스",
+        lblRevKnown: "알고 있는 값은?",
+        txtRevByWeight: "무게를 알아요", txtRevByDims: "치수를 알아요",
+        txtResultTitle: "계산 결과", txtResultLive: "실시간 · 입력 즉시 갱신",
+        lblDensity: "밀도 (DENSITY)", lblClass: "예상 화물 클래스",
+        lblAlt2025: "2025 NMFC 13-sub 밀도 스케일 기준:",
+        altSame: "동일 등급", basisFcdc: "FCDC 밀도 가이드라인",
+        lblGauge: "상대적 비용 위치",
+        lblGaugeLo: "Class 50 · 최저비용", lblGaugeHi: "Class 500 · 최고비용",
+        lblRevTarget: "목표 클래스",
+        revTip: "클래스를 낮추려면(운임 절감) 밀도를 높이세요: 더 촘촘히 포장하거나, 박스 크기를 줄이거나, 부피당 무게를 늘리면 됩니다.",
+        txtDisclaimer: "본 도구는 밀도만으로 산출한 예상 등급입니다. 실제 등급은 공식 NMFC가 정하는 적재성(Stowability)·취급성(Handling)·책임(Liability) 요소에 따라 달라질 수 있습니다. 확정 등급은 NMFTA ClassIT+ 또는 운송사에 확인하세요.",
+        btnShare: "🔗 결과 링크 복사", btnShareDone: "✓ 링크 복사됨!",
+        btnPdf: "📄 PDF 리포트 저장",
+        lblHistory: "최근 계산 기록",
+        txtShowViz: "트럭 적재 3D 미리보기 열기", txtHideViz: "트럭 적재 3D 미리보기 닫기",
+        txtVizTitle: "트럭 적재 미리보기 · Isometric 3D",
+        optVan53: "53 ft 드라이밴 (630 × 98.5 × 108 in)",
+        optCt40: "40 ft 컨테이너 (474 × 92.5 × 94.5 in)",
+        optCt20: "20 ft 컨테이너 (232.5 × 92.5 × 94.5 in)",
+        txtLegCargo: "내 핸들링 유닛", txtLegPallet: "팔레트", txtLegTruck: "트레일러 내부",
+        lblVkFit: "적재 가능 개수", lblVkUtil: "공간 활용률", lblVkDead: "잔여 공간", lblVkLinear: "사용 리니어피트",
+        txtEmbedTitle: "이 계산기를 내 사이트에 무료로 임베드",
+        txtEmbedHelp: "아래 코드를 물류 블로그나 포워더 사이트에 붙여넣으세요. 위젯은 무료이며, 크레딧 링크는 유지해야 합니다.",
+        btnCopyEmbed: "📋 임베드 코드 복사", btnCopyEmbedDone: "✓ 복사됨!",
+        txtFooterDesc: "밀도 계산, 역산, 배치 모드, 트럭 적재 시각화를 지원하는 무료 NMFC 화물 등급 추정 도구입니다. NMFTA와 무관합니다.",
+        dTotal: "합계", dUnits: "유닛", dCube: "부피", dWeight: "무게",
+        dPerUnit: "핸들링 유닛당",
+        wHeight: "총 높이 {h}가 다수 LTL 운송사의 표준 팔레트 상한(~96 in)을 초과합니다. 운송사에 사전 확인을 권장합니다.",
+        wWeight: "유닛 무게 {w}가 팔레트당 통상 상한(운송사별 약 2,500~4,600 lbs)을 초과합니다. 운송사에 사전 확인을 권장합니다.",
+        wOverhang: "화물 바닥면이 선택한 팔레트보다 큽니다 ({c} vs {p}). 오버행은 팔레트 2개 포지션으로 과금될 수 있고 파손 클레임이 제한될 수 있습니다.",
+        wFloor: "바닥 적재: 일부 운송사는 팔레트화를 요구하며, 바닥 적재는 운송사 승인 및 파손 클레임 보장에 제한이 있을 수 있습니다.",
+        wCommodityFixed: "{name}은(는) 특정 NMFC 품목 번호로 등급이 고정되는 경우가 많습니다(통상 class {cls} 부근). 밀도 추정치보다 우선하므로 예약 전 확인하세요.",
+        wCommodityRange: "{name}은(는) 밀도·포장에 따라 통상 class {cls} 범위입니다. 실제 NMFC 품목 등급은 밀도 추정치와 다를 수 있습니다.",
+        revNeedDensity: "필요 밀도", revMaxCube: "{wt} 기준 최대 부피", revMinCube: "{wt} 기준 최소 부피",
+        revCubeExample: "≈ 한 변 {side} 정육면체", revMinWt: "{cube} 기준 최소 무게", revMaxWt: "{cube} 기준 최대 무게",
+        revOrMore: "이상", revLessThan: "미만",
+        bthCombined: "통합 화물 (총 무게 ÷ 총 부피)", bthRow: "품목", bthDensity: "PCF", bthClass: "등급",
+        bthWavg: "무게 가중평균 클래스 (참고용)",
+        vkTiers: "{n}단 적재", vizPayload: "총 무게 {w}가 이 트레일러의 적재 한도(~{p} lbs)를 초과합니다.",
+        vizNone: "먼저 유효한 치수를 입력하세요 — 표시할 내용이 없습니다.",
+        histNow: "방금", prTitle: "화물 클래스 리포트 / FREIGHT CLASS REPORT", prGenerated: "출력일시", prRef: "참조번호",
+        prShipment: "화물 정보", prDims: "치수 (유닛당)", prWeight: "무게 (유닛당)", prQty: "수량",
+        prLoad: "적재 방식", prPalletized: "팔레트 적재", prFloor: "바닥 적재", prPallet: "팔레트",
+        prCube: "부피 (유닛당)", prResult: "계산 결과", prDensity: "밀도 (PCF)", prClass: "예상 클래스",
+        prBasis: "판정 근거", prAlt: "2025 13-sub 스케일", prGauge: "상대적 비용 위치",
+        prCommodity: "품목 참고", prDisclaimer: "밀도만으로 산출한 예상 등급입니다. 실제 등급은 공식 NMFC의 적재성·취급성·책임 요소에 따라 달라질 수 있습니다. 확정 등급은 NMFTA ClassIT+ 또는 운송사에 확인하세요. Generated by Freight Class Calculator — freight-class-density-calculator.pages.dev"
+      }
+    };
+
+    let currentLang = 'en';
+    function t(key) {
+      return (translations[currentLang] && translations[currentLang][key]) || translations.en[key] || '';
+    }
+    function tFmt(key, vars) {
+      let s = t(key);
+      for (const k in vars) s = s.replace('{' + k + '}', vars[k]);
+      return s;
+    }
+
+    function switchLang(lang) {
+      currentLang = lang;
+      document.documentElement.lang = lang;
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+      const dict = translations[lang];
+      // ids that carry HTML (hint spans)
+      const htmlKeys = { lblDims: 1, lblCommodity: 1 };
+      for (const key in dict) {
+        const el = document.getElementById(key);
+        if (!el) continue;
+        if (htmlKeys[key]) el.innerHTML = dict[key]; else el.textContent = dict[key];
+      }
+      document.title = dict.seoTitle;
+      const md = document.querySelector('meta[name=description]');
+      if (md) md.setAttribute('content', dict.seoDesc);
+      populateCommoditySelect();
+      renderHistory();
+      onInput(true);
+    }
+  </script>
+
+  <!-- ========================================================
+       CORE LOGIC: UNITS, MODES, CALCULATION
+       ======================================================== -->
+  <script>
+    // ---------- state ----------
+    let unitSys = 'imp';          // 'imp' (in+lbs) | 'met' (cm+kg)
+    let mode = 'single';          // 'single' | 'batch' | 'reverse'
+    let loadType = 'pallet';      // 'pallet' | 'floor'
+    let revBasis = 'weight';      // 'weight' | 'dims'
+    let lastResult = null;        // cached for viz / pdf / share
+    let debounceTimer = null;
+
+    const IN_PER_CM = 1 / 2.54;
+    const LBS_PER_KG = 2.20462262;
+
+    // read a numeric input, normalized to inches/lbs regardless of display units
+    function readLen(id) {
+      const v = parseFloat(document.getElementById(id).value);
+      if (isNaN(v) || v < 0) return NaN;
+      return unitSys === 'met' ? v * IN_PER_CM : v;
+    }
+    function readWt(id) {
+      const v = parseFloat(document.getElementById(id).value);
+      if (isNaN(v) || v < 0) return NaN;
+      return unitSys === 'met' ? v * LBS_PER_KG : v;
+    }
+    function lenUnit() { return unitSys === 'met' ? 'cm' : 'in'; }
+    function wtUnit() { return unitSys === 'met' ? 'kg' : 'lbs'; }
+    // format an internal inches/lbs value back into the display unit
+    function showLen(inches) { return unitSys === 'met' ? (inches * 2.54) : inches; }
+    function showWt(lbs) { return unitSys === 'met' ? (lbs / LBS_PER_KG) : lbs; }
+    function fmtN(n, d) { return Number(n.toFixed(d === undefined ? 1 : d)).toLocaleString('en-US'); }
+
+    // ---------- unit toggle: convert every visible value in place (spec 1.1) ----------
+    const LEN_FIELDS = ['inL','inW','inH','palL','palW','revL','revW','revH'];
+    const WT_FIELDS = ['inWt','palWt','revWt'];
+
+    function setUnits(sys) {
+      if (sys === unitSys) return;
+      const lenF = sys === 'met' ? 2.54 : 1 / 2.54;
+      const wtF = sys === 'met' ? 1 / LBS_PER_KG : LBS_PER_KG;
+      const conv = (el, f) => {
+        const v = parseFloat(el.value);
+        if (!isNaN(v) && el.value !== '') el.value = Number((v * f).toFixed(2));
+      };
+      LEN_FIELDS.forEach(id => conv(document.getElementById(id), lenF));
+      WT_FIELDS.forEach(id => conv(document.getElementById(id), wtF));
+      document.querySelectorAll('#batchRows .b-len').forEach(el => conv(el, lenF));
+      document.querySelectorAll('#batchRows .b-wt').forEach(el => conv(el, wtF));
+      unitSys = sys;
+      document.getElementById('unitBtnImp').classList.toggle('active', sys === 'imp');
+      document.getElementById('unitBtnMet').classList.toggle('active', sys === 'met');
+      updateUnitTags();
+      onInput(true);
+    }
+
+    function updateUnitTags() {
+      const lu = lenUnit(), wu = wtUnit();
+      const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+      set('tagL', 'L (' + lu + ')'); set('tagW', 'W (' + lu + ')'); set('tagH', 'H (' + lu + ')');
+      set('tagWt', (currentLang === 'ko' ? '무게' : 'Weight') + ' (' + wu + ')');
+      set('tagQty', currentLang === 'ko' ? '수량' : 'Qty (units)');
+      set('tagPalL', 'Pal L (' + lu + ')'); set('tagPalW', 'Pal W (' + lu + ')'); set('tagPalWt', 'Pal wt (' + wu + ')');
+      set('tagRevWt', (currentLang === 'ko' ? '무게' : 'Weight') + ' (' + wu + ')');
+      set('tagRevL', 'L (' + lu + ')'); set('tagRevW', 'W (' + lu + ')'); set('tagRevH', 'H (' + lu + ')');
+      document.querySelectorAll('.thL').forEach(el => el.textContent = 'L(' + lu + ')');
+      document.querySelectorAll('.thW').forEach(el => el.textContent = 'W(' + lu + ')');
+    }
+
+    // ---------- mode switching ----------
+    function setMode(m) {
+      mode = m;
+      document.getElementById('tabSingle').classList.toggle('active', m === 'single');
+      document.getElementById('tabBatch').classList.toggle('active', m === 'batch');
+      document.getElementById('tabReverse').classList.toggle('active', m === 'reverse');
+      document.getElementById('paneSingle').classList.toggle('hidden', m !== 'single');
+      document.getElementById('paneBatch').classList.toggle('hidden', m !== 'batch');
+      document.getElementById('paneReverse').classList.toggle('hidden', m !== 'reverse');
+      document.getElementById('resMain').classList.toggle('hidden', m === 'reverse');
+      document.getElementById('resReverse').classList.toggle('hidden', m !== 'reverse');
+      document.getElementById('batchResWrap').classList.toggle('hidden', m !== 'batch');
+      onInput(true);
+    }
+
+    function setLoadType(lt) {
+      loadType = lt;
+      document.getElementById('loadPallet').classList.toggle('active', lt === 'pallet');
+      document.getElementById('loadFloor').classList.toggle('active', lt === 'floor');
+      document.getElementById('palletOpts').style.display = lt === 'pallet' ? '' : 'none';
+      onInput(true);
+    }
+
+    function setRevBasis(b) {
+      revBasis = b;
+      document.getElementById('revByWeight').classList.toggle('active', b === 'weight');
+      document.getElementById('revByDims').classList.toggle('active', b === 'dims');
+      document.getElementById('revWeightRow').classList.toggle('hidden', b !== 'weight');
+      document.getElementById('revDimsRow').classList.toggle('hidden', b !== 'dims');
+      onInput(true);
+    }
+
+    function onPalletPreset() {
+      const key = document.getElementById('palletPreset').value;
+      const isCustom = key === 'custom';
+      document.getElementById('palletCustomRow').style.display = isCustom ? '' : 'none';
+      if (!isCustom) {
+        const p = PALLETS[key];
+        document.getElementById('palL').value = Number(showLen(p.l).toFixed(2));
+        document.getElementById('palW').value = Number(showLen(p.w).toFixed(2));
+        document.getElementById('palWt').value = Number(showWt(p.wt).toFixed(1));
+      }
+      onInput(true);
+    }
+
+    // current pallet spec in inches/lbs
+    function getPallet() {
+      const key = document.getElementById('palletPreset').value;
+      if (key !== 'custom') return { ...PALLETS[key] };
+      return { l: readLen('palL') || 48, w: readLen('palW') || 40, h: 6, wt: readWt('palWt') || 0 };
+    }
+
+    // ---------- commodity select ----------
+    function populateCommoditySelect() {
+      const sel = document.getElementById('commoditySel');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">—</option>' + COMMODITIES.map(c =>
+        `<option value="${c.key}">${currentLang === 'ko' ? c.ko : c.en} (~${c.cls})</option>`).join('');
+      sel.value = cur;
+    }
+
+    // ---------- batch rows ----------
+    let batchRowSeq = 0;
+    function addBatchRow(vals) {
+      batchRowSeq++;
+      const tr = document.createElement('tr');
+      tr.dataset.rowid = batchRowSeq;
+      const v = vals || {};
+      const name = v.name !== undefined ? v.name : ((currentLang === 'ko' ? '품목 ' : 'Item ') + batchRowSeq);
+      tr.innerHTML =
+        `<td><input type="text" class="b-name" value="${name.replace(/"/g, '&quot;')}" oninput="onInput()" style="min-width:70px;"></td>` +
+        `<td><input type="number" class="b-len b-l" min="0" step="any" value="${v.l !== undefined ? v.l : 48}" oninput="onInput()" style="width:62px;"></td>` +
+        `<td><input type="number" class="b-len b-w" min="0" step="any" value="${v.w !== undefined ? v.w : 40}" oninput="onInput()" style="width:62px;"></td>` +
+        `<td><input type="number" class="b-len b-h" min="0" step="any" value="${v.h !== undefined ? v.h : 40}" oninput="onInput()" style="width:62px;"></td>` +
+        `<td><input type="number" class="b-wt" min="0" step="any" value="${v.wt !== undefined ? v.wt : 400}" oninput="onInput()" style="width:72px;"></td>` +
+        `<td><input type="number" class="b-qty" min="1" step="1" value="${v.q !== undefined ? v.q : 1}" oninput="onInput()" style="width:52px;"></td>` +
+        `<td><button class="row-del" onclick="this.closest('tr').remove(); onInput(true);" title="Remove">✕</button></td>`;
+      document.getElementById('batchRows').appendChild(tr);
+      onInput(true);
+    }
+
+    function readBatchRows() {
+      const rows = [];
+      document.querySelectorAll('#batchRows tr').forEach(tr => {
+        const g = (cls) => { const el = tr.querySelector(cls); const v = parseFloat(el.value); return isNaN(v) || v < 0 ? NaN : v; };
+        const toIn = (v) => unitSys === 'met' ? v * IN_PER_CM : v;
+        const toLbs = (v) => unitSys === 'met' ? v * LBS_PER_KG : v;
+        const r = {
+          name: tr.querySelector('.b-name').value || '—',
+          l: toIn(g('.b-l')), w: toIn(g('.b-w')), h: toIn(g('.b-h')),
+          wt: toLbs(g('.b-wt')), q: Math.max(1, Math.round(g('.b-qty') || 1))
+        };
+        if ([r.l, r.w, r.h, r.wt].every(x => !isNaN(x) && x > 0)) rows.push(r);
+      });
+      return rows;
+    }
+
+    // ---------- main recalc (debounced live updates, spec §4) ----------
+    function onInput(now) {
+      clearTimeout(debounceTimer);
+      if (now === true) { recalc(); return; }
+      debounceTimer = setTimeout(recalc, 150);
+    }
+
+    function recalc() {
+      if (mode === 'reverse') { recalcReverse(); return; }
+      if (mode === 'batch') { recalcBatch(); return; }
+      recalcSingle();
+    }
+
+    function fmtDims(l, w, h) {
+      return fmtN(showLen(l)) + ' × ' + fmtN(showLen(w)) + ' × ' + fmtN(showLen(h)) + ' ' + lenUnit();
+    }
+
+    // ----- single item -----
+    function recalcSingle() {
+      const L = readLen('inL'), W = readLen('inW'), H = readLen('inH'), wt = readWt('inWt');
+      const qty = Math.max(1, Math.round(parseFloat(document.getElementById('inQty').value) || 1));
+      if ([L, W, H, wt].some(x => isNaN(x) || x <= 0)) { renderEmpty(); return; }
+
+      const includePallet = loadType === 'pallet' && document.getElementById('includePallet').checked;
+      const pal = getPallet();
+      // NMFC: measure the handling unit as tendered — pallet footprint governs
+      // unless the cargo overhangs it, and pallet height/weight are added.
+      const effL = includePallet ? Math.max(L, pal.l) : L;
+      const effW = includePallet ? Math.max(W, pal.w) : W;
+      const effH = includePallet ? H + pal.h : H;
+      const effWt = includePallet ? wt + pal.wt : wt;
+
+      const cube = effL * effW * effH / 1728;      // ft³ per unit
+      const density = effWt / cube;
+      const cf = classify(density, SCALE_FCDC);
+      const c25 = classify(density, SCALE_2025);
+
+      lastResult = {
+        mode: 'single', L, W, H, wt, qty, loadType, includePallet, pal,
+        effL, effW, effH, effWt, cube, density, cls: cf.cls, cls25: c25.cls, sub25: c25.sub,
+        rangeMin: cf.min, rangeMax: cf.max,
+        commodity: document.getElementById('commoditySel').value
+      };
+
+      // hero numbers
+      document.getElementById('valDensity').innerHTML = density.toFixed(2) + ' <span>PCF</span>';
+      document.getElementById('lblCube').textContent = fmtN(cube, 2) + ' ft³ ' + t('dPerUnit');
+      document.getElementById('valClass').textContent = cf.cls;
+      document.getElementById('resBasis').innerHTML =
+        (cf.max === Infinity ? cf.min + '+ PCF' : cf.min + ' – ' + cf.max + ' PCF') +
+        ' → <b>Class ' + cf.cls + '</b> (' + t('basisFcdc') + ')';
+      const chip = document.getElementById('chipAlt');
+      chip.textContent = 'Class ' + c25.cls + ' · sub ' + c25.sub;
+      chip.classList.toggle('same', c25.cls === cf.cls);
+
+      // totals strip
+      const tot = document.getElementById('totalsStrip');
+      tot.innerHTML =
+        `<span class="tot-chip">${t('dTotal')}: <b>${qty}</b> ${t('dUnits')}</span>` +
+        `<span class="tot-chip">${t('dCube')}: <b>${fmtN(cube * qty, 2)}</b> ft³</span>` +
+        `<span class="tot-chip">${t('dWeight')}: <b>${fmtN(showWt(effWt * qty), 1)}</b> ${wtUnit()}</span>`;
+
+      updateGauge(cf.cls);
+      renderWarnings();
+      renderCommodityNote();
+      pushHistorySoon();
+      if (!document.getElementById('vizCard').classList.contains('hidden')) drawTruck();
+    }
+
+    function renderEmpty() {
+      lastResult = null;
+      document.getElementById('valDensity').innerHTML = '— <span>PCF</span>';
+      document.getElementById('lblCube').textContent = '— ft³';
+      document.getElementById('valClass').textContent = '—';
+      document.getElementById('resBasis').textContent = '—';
+      document.getElementById('chipAlt').textContent = '—';
+      document.getElementById('totalsStrip').innerHTML = '';
+      document.getElementById('warnings').innerHTML = '';
+      document.getElementById('commodityNote').innerHTML = '';
+      document.getElementById('lblGaugeVal').textContent = '—';
+    }
+
+    // ----- batch -----
+    function recalcBatch() {
+      const rows = readBatchRows();
+      const addPal = document.getElementById('batchIncludePallet').checked;
+      const pal = PALLETS.gma;
+      if (!rows.length) { renderEmpty(); document.getElementById('batchResTable').innerHTML = ''; return; }
+
+      let totCube = 0, totWt = 0, wavgNum = 0;
+      const detail = rows.map(r => {
+        const effL = addPal ? Math.max(r.l, pal.l) : r.l;
+        const effW = addPal ? Math.max(r.w, pal.w) : r.w;
+        const effH = addPal ? r.h + pal.h : r.h;
+        const effWt = addPal ? r.wt + pal.wt : r.wt;
+        const cube = effL * effW * effH / 1728;
+        const density = effWt / cube;
+        const cf = classify(density, SCALE_FCDC);
+        totCube += cube * r.q; totWt += effWt * r.q;
+        wavgNum += parseFloat(cf.cls) * effWt * r.q;
+        return { ...r, effL, effW, effH, effWt, cube, density, cls: cf.cls };
+      });
+
+      const density = totWt / totCube;
+      const cf = classify(density, SCALE_FCDC);
+      const c25 = classify(density, SCALE_2025);
+      const wavg = wavgNum / totWt;
+
+      lastResult = {
+        mode: 'batch', rows: detail, totCube, totWt, density,
+        cls: cf.cls, cls25: c25.cls, sub25: c25.sub, rangeMin: cf.min, rangeMax: cf.max,
+        includePallet: addPal, loadType: addPal ? 'pallet' : 'floor', pal, wavg
+      };
+
+      document.getElementById('valDensity').innerHTML = density.toFixed(2) + ' <span>PCF</span>';
+      document.getElementById('lblCube').textContent = fmtN(totCube, 2) + ' ft³ ' + t('dTotal').toLowerCase();
+      document.getElementById('valClass').textContent = cf.cls;
+      document.getElementById('resBasis').innerHTML =
+        (cf.max === Infinity ? cf.min + '+ PCF' : cf.min + ' – ' + cf.max + ' PCF') +
+        ' → <b>Class ' + cf.cls + '</b> · ' + t('bthCombined');
+      const chip = document.getElementById('chipAlt');
+      chip.textContent = 'Class ' + c25.cls + ' · sub ' + c25.sub;
+      chip.classList.toggle('same', c25.cls === cf.cls);
+
+      document.getElementById('totalsStrip').innerHTML =
+        `<span class="tot-chip">${t('dCube')}: <b>${fmtN(totCube, 2)}</b> ft³</span>` +
+        `<span class="tot-chip">${t('dWeight')}: <b>${fmtN(showWt(totWt), 1)}</b> ${wtUnit()}</span>` +
+        `<span class="tot-chip">${t('bthWavg')}: <b>${wavg.toFixed(1)}</b></span>`;
+
+      // per-row table
+      let html = `<tr><th>${t('bthRow')}</th><th>ft³</th><th>${t('bthDensity')}</th><th>${t('bthClass')}</th></tr>`;
+      detail.forEach(d => {
+        html += `<tr><td>${d.name}${d.q > 1 ? ' ×' + d.q : ''}</td><td>${fmtN(d.cube, 1)}</td><td>${d.density.toFixed(2)}</td><td class="cls">${d.cls}</td></tr>`;
+      });
+      document.getElementById('batchResTable').innerHTML = html;
+
+      updateGauge(cf.cls);
+      renderWarnings();
+      document.getElementById('commodityNote').innerHTML = '';
+      pushHistorySoon();
+      if (!document.getElementById('vizCard').classList.contains('hidden')) drawTruck();
+    }
+
+    // ----- reverse (spec 2.1) -----
+    function recalcReverse() {
+      const cls = document.getElementById('revClass').value;
+      const range = rangeForClass(cls);
+      if (!range) return;
+      document.getElementById('revValClass').textContent = cls;
+      document.getElementById('revDensRange').textContent =
+        (range.max === Infinity ? range.min + '+ PCF' : range.min + ' – ' + range.max + ' PCF') +
+        (currentLang === 'ko' ? ' 필요' : ' required');
+
+      const grid = document.getElementById('revGrid');
+      let cells = '';
+      if (revBasis === 'weight') {
+        const wt = readWt('revWt');
+        if (isNaN(wt) || wt <= 0) { grid.innerHTML = ''; return; }
+        const wtLabel = fmtN(showWt(wt), 0) + ' ' + wtUnit();
+        // density = wt / cube  ->  cube in (wt/max , wt/min]
+        const maxCube = wt / range.min;                       // largest cube still dense enough
+        const minCube = range.max === Infinity ? 0 : wt / range.max;
+        const sideIn = Math.cbrt(maxCube) * 12;               // inches, intuition helper
+        const sideLabel = fmtN(showLen(sideIn), 0) + ' ' + lenUnit();
+        cells += `<div class="rev-cell"><div class="lbl">${tFmt('revMaxCube', { wt: wtLabel })}</div>` +
+          `<div class="val">${isFinite(maxCube) ? fmtN(maxCube, 2) + ' ft³' : '∞'}` +
+          `<br><small>${tFmt('revCubeExample', { side: sideLabel })}</small></div></div>`;
+        if (minCube > 0) {
+          cells += `<div class="rev-cell"><div class="lbl">${tFmt('revMinCube', { wt: wtLabel })}</div>` +
+            `<div class="val">${fmtN(minCube, 2)} ft³<br><small>&gt; ${fmtN(minCube, 2)} ft³</small></div></div>`;
+        }
+        lastResult = { mode: 'reverse', cls, range, basis: 'weight', wt, maxCube, minCube };
+      } else {
+        const L = readLen('revL'), W = readLen('revW'), H = readLen('revH');
+        if ([L, W, H].some(x => isNaN(x) || x <= 0)) { grid.innerHTML = ''; return; }
+        const cube = L * W * H / 1728;
+        const cubeLabel = fmtN(cube, 2) + ' ft³';
+        const minWt = cube * range.min;
+        const maxWt = range.max === Infinity ? Infinity : cube * range.max;
+        cells += `<div class="rev-cell"><div class="lbl">${tFmt('revMinWt', { cube: cubeLabel })}</div>` +
+          `<div class="val">${fmtN(showWt(minWt), 1)} ${wtUnit()} <small>${t('revOrMore')}</small></div></div>`;
+        if (maxWt !== Infinity) {
+          cells += `<div class="rev-cell"><div class="lbl">${tFmt('revMaxWt', { cube: cubeLabel })}</div>` +
+            `<div class="val">${fmtN(showWt(maxWt), 1)} ${wtUnit()} <small>${t('revLessThan')}</small></div></div>`;
+        }
+        lastResult = { mode: 'reverse', cls, range, basis: 'dims', L, W, H, cube, minWt, maxWt };
+      }
+      grid.innerHTML = cells;
+    }
+
+    // ---------- cost gauge (spec 2.7: position only, no $ figures) ----------
+    function updateGauge(cls) {
+      const idx = ALL_CLASSES.indexOf(cls);
+      const pct = idx < 0 ? 50 : (idx / (ALL_CLASSES.length - 1)) * 100;
+      document.getElementById('gaugeMarker').style.left = 'calc(' + pct.toFixed(1) + '% - 2px)';
+      document.getElementById('lblGaugeVal').textContent = 'Class ' + cls;
+    }
+
+    // ---------- warnings (spec 2.6) ----------
+    function renderWarnings() {
+      const box = document.getElementById('warnings');
+      let html = '';
+      const r = lastResult;
+      if (!r) { box.innerHTML = ''; return; }
+      if (r.mode === 'single') {
+        if (r.loadType === 'pallet') {
+          const pal = r.pal;
+          if (r.L > pal.l || r.W > pal.w) {
+            html += `<div class="warn-box"><span class="w-ico">⚠️</span><span>${tFmt('wOverhang', {
+              c: fmtN(showLen(r.L)) + '×' + fmtN(showLen(r.W)) + ' ' + lenUnit(),
+              p: fmtN(showLen(pal.l)) + '×' + fmtN(showLen(pal.w)) + ' ' + lenUnit()
+            })}</span></div>`;
+          }
+          if (r.effH > 96) {
+            html += `<div class="warn-box"><span class="w-ico">📏</span><span>${tFmt('wHeight', { h: fmtN(showLen(r.effH)) + ' ' + lenUnit() })}</span></div>`;
+          }
+          if (r.effWt > 4600) {
+            html += `<div class="warn-box danger"><span class="w-ico">🏋️</span><span>${tFmt('wWeight', { w: fmtN(showWt(r.effWt), 0) + ' ' + wtUnit() })}</span></div>`;
+          }
+        } else {
+          html += `<div class="warn-box info"><span class="w-ico">ℹ️</span><span>${t('wFloor')}</span></div>`;
+        }
+      }
+      box.innerHTML = html;
+    }
+
+    function renderCommodityNote() {
+      const key = document.getElementById('commoditySel').value;
+      const box = document.getElementById('commodityNote');
+      if (!key) { box.innerHTML = ''; return; }
+      const c = COMMODITIES.find(x => x.key === key);
+      const name = currentLang === 'ko' ? c.ko : c.en;
+      const msg = c.fixed ? tFmt('wCommodityFixed', { name, cls: c.cls }) : tFmt('wCommodityRange', { name, cls: c.cls });
+      box.innerHTML = `<div class="warn-box ${c.fixed ? '' : 'info'}"><span class="w-ico">${c.fixed ? '⚠️' : '💡'}</span><span>${msg}</span></div>`;
+    }
+  </script>
+
+  <!-- ========================================================
+       TRUCK LOADING 3D (isometric SVG, engine shared with the
+       pallet optimizer project), SHARE / HISTORY / PDF / INIT
+       ======================================================== -->
+  <script>
+    // ---------- isometric projection (same camera as pallet optimizer) ----------
+    const isoA = Math.PI / 6, isoE = Math.PI / 3.4;
+    const cA = Math.cos(isoA), sA = Math.sin(isoA), cE = Math.cos(isoE), sE = Math.sin(isoE);
+    function iso(x, y, z) { return { sx: (x - z) * cA, sy: (x + z) * sA * sE - y * cE }; }
+
+    function adjustColor(hex, percent) {
+      const n = parseInt(hex.slice(1), 16);
+      let r = (n >> 16) + percent, g = ((n >> 8) & 0xFF) + percent, b = (n & 0xFF) + percent;
+      r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
+      return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+    }
+
+    function toggleViz() {
+      const card = document.getElementById('vizCard');
+      const ad = document.getElementById('vizAd');
+      const show = card.classList.contains('hidden');
+      card.classList.toggle('hidden', !show);
+      ad.classList.toggle('hidden', !show);
+      document.getElementById('txtShowViz').textContent = show ? t('txtHideViz') : t('txtShowViz');
+      if (show) drawTruck();   // lazy: only rendered on demand (spec §3.2)
+    }
+
+    // Build the list of handling-unit footprints to load, from the last result.
+    function vizUnits() {
+      const r = lastResult;
+      if (!r) return null;
+      if (r.mode === 'single') {
+        const u = { l: r.effL, w: r.effW, h: r.effH, wt: r.effWt, isPallet: r.loadType === 'pallet', palH: r.includePallet ? r.pal.h : 0 };
+        return { units: [u], qty: r.qty, mixed: false };
+      }
+      if (r.mode === 'batch' && r.rows.length) {
+        // one entry per row type; quantities kept per row
+        return {
+          units: r.rows.map(d => ({ l: d.effL, w: d.effW, h: d.effH, wt: d.effWt, q: d.q, isPallet: r.includePallet, palH: r.includePallet ? r.pal.h : 0 })),
+          mixed: true
+        };
+      }
+      return null;
+    }
+
+    const VIZ_COLORS = ['#D2A06A', '#7FB3D5', '#A8D5A2', '#D5A6BD', '#F0C987', '#9FA8DA'];
+
+    function drawTruck() {
+      const svg = document.getElementById('truckSvg');
+      const box = vizUnits();
+      const truck = TRUCKS[document.getElementById('truckSel').value];
+      const setKpi = (id, v) => { document.getElementById(id).innerHTML = v; };
+      document.getElementById('vizWarnings').innerHTML = '';
+      if (!box) {
+        svg.innerHTML = `<text x="450" y="230" text-anchor="middle" fill="#94A3B8" font-family="Outfit,sans-serif" font-size="15">${t('vizNone')}</text>`;
+        setKpi('vkFit', '—'); setKpi('vkUtil', '— <span>%</span>'); setKpi('vkDead', '— <span>ft³</span>'); setKpi('vkLinear', '— <span>ft</span>');
+        return;
+      }
+
+      // ---- placement: greedy row packing along trailer length, per unit type ----
+      const T = truck;
+      const placed = [];           // {x,z,l,w,h,tiers,color,palH}
+      let cursorX = 0;             // along trailer length
+      let totalCargoVol = 0, totalWt = 0, fitCount = 0, requested = 0;
+
+      const types = box.mixed ? box.units : [{ ...box.units[0], q: box.qty }];
+      types.forEach((u, ti) => {
+        if (!(u.l > 0 && u.w > 0 && u.h > 0)) return;
+        // orient so the smaller side spans trailer width when it fits more per row
+        let ul = u.l, uw = u.w;
+        const perRowA = uw <= T.w ? Math.floor(T.w / uw) : 0;
+        const perRowB = ul <= T.w ? Math.floor(T.w / ul) : 0;
+        if (perRowB > perRowA) { ul = u.w; uw = u.l; }
+        const perRow = Math.floor(T.w / uw);
+        if (perRow < 1 || ul > T.l || u.h > T.h) { requested += (u.q || 1); return; }
+        const tiers = Math.max(1, Math.floor(T.h / u.h));
+        let remaining = u.q || 1;
+        requested += remaining;
+        while (remaining > 0 && cursorX + ul <= T.l) {
+          const inRow = Math.min(perRow, Math.ceil(remaining / tiers));
+          for (let i = 0; i < perRow && remaining > 0; i++) {
+            let stack = Math.min(tiers, remaining);
+            placed.push({ x: cursorX, z: i * uw, l: ul, w: uw, h: u.h, tiers: stack, color: VIZ_COLORS[ti % VIZ_COLORS.length], palH: u.palH, isPallet: u.isPallet });
+            totalCargoVol += ul * uw * u.h * stack;
+            totalWt += u.wt * stack;
+            fitCount += stack;
+            remaining -= stack;
+          }
+          cursorX += ul;
+        }
+      });
+
+      const usedLinear = cursorX;
+      const truckVol = T.l * T.w * T.h;
+      const utilization = totalCargoVol / truckVol * 100;
+      const dead = (truckVol - totalCargoVol) / 1728;
+
+      setKpi('vkFit', fitCount + (requested > fitCount ? ' <span>/ ' + requested + '</span>' : ''));
+      setKpi('vkUtil', utilization.toFixed(1) + ' <span>%</span>');
+      setKpi('vkDead', fmtN(dead, 0) + ' <span>ft³</span>');
+      setKpi('vkLinear', (usedLinear / 12).toFixed(1) + ' <span>ft</span>');
+      if (totalWt > T.payload) {
+        document.getElementById('vizWarnings').innerHTML =
+          `<div class="warn-box danger" style="margin-top:12px;"><span class="w-ico">⚠️</span><span>${tFmt('vizPayload', { w: fmtN(totalWt, 0) + ' lbs', p: fmtN(T.payload, 0) })}</span></div>`;
+      }
+
+      // ---- render ----
+      const viewW = 900, viewH = 460, pad = 40;
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const xx of [0, T.l]) for (const yy of [0, T.h]) for (const zz of [0, T.w]) {
+        const p = iso(xx, yy, zz);
+        minX = Math.min(minX, p.sx); maxX = Math.max(maxX, p.sx);
+        minY = Math.min(minY, p.sy); maxY = Math.max(maxY, p.sy);
+      }
+      const scale = Math.min((viewW - pad * 2) / (maxX - minX), (viewH - pad * 2) / (maxY - minY));
+      const orgX = pad - minX * scale + ((viewW - pad * 2) - (maxX - minX) * scale) / 2;
+      const orgY = pad - minY * scale + ((viewH - pad * 2) - (maxY - minY) * scale) / 2;
+      const P = (x, y, z) => { const p = iso(x, y, z); return { x: orgX + p.sx * scale, y: orgY + p.sy * scale }; };
+      const poly = pts => pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+      function cuboid(x0, y0, z0, w, h, d, topFill, rightFill, frontFill, strokeCol, opacity) {
+        const v = {
+          '010': P(x0, y0 + h, z0), '110': P(x0 + w, y0 + h, z0), '111': P(x0 + w, y0 + h, z0 + d), '011': P(x0, y0 + h, z0 + d),
+          '100': P(x0 + w, y0, z0), '101': P(x0 + w, y0, z0 + d), '001': P(x0, y0, z0 + d)
+        };
+        const op = opacity !== undefined ? ` opacity="${opacity}"` : '';
+        const top = `<polygon points="${poly([v['010'], v['110'], v['111'], v['011']])}" fill="${topFill}" stroke="${strokeCol}" stroke-width="0.6"${op}/>`;
+        const right = `<polygon points="${poly([v['100'], v['110'], v['111'], v['101']])}" fill="${rightFill}" stroke="${strokeCol}" stroke-width="0.6"${op}/>`;
+        const front = `<polygon points="${poly([v['001'], v['101'], v['111'], v['011']])}" fill="${frontFill}" stroke="${strokeCol}" stroke-width="0.6"${op}/>`;
+        const depth = (x0 + w / 2) + (z0 + d / 2) + y0 * 1.6;
+        return { depth, svg: top + right + front };
+      }
+
+      let s = '';
+      // trailer shell: floor + two far walls, drawn first so cargo sits inside
+      const fl = [P(0, 0, 0), P(T.l, 0, 0), P(T.l, 0, T.w), P(0, 0, T.w)];
+      s += `<polygon points="${poly(fl)}" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1"/>`;
+      const wallBack = [P(0, 0, 0), P(T.l, 0, 0), P(T.l, T.h, 0), P(0, T.h, 0)];
+      s += `<polygon points="${poly(wallBack)}" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1" opacity="0.75"/>`;
+      const wallLeft = [P(0, 0, 0), P(0, 0, T.w), P(0, T.h, T.w), P(0, T.h, 0)];
+      s += `<polygon points="${poly(wallLeft)}" fill="#E8EDF3" stroke="#CBD5E1" stroke-width="1" opacity="0.75"/>`;
+
+      const items = [];
+      placed.forEach(pc => {
+        for (let tier = 0; tier < pc.tiers; tier++) {
+          const y0 = tier * pc.h;
+          if (pc.isPallet && pc.palH > 0) {
+            // pallet base then cargo block above it, inside the same unit height
+            items.push(cuboid(pc.x + 1, y0, pc.z + 1, pc.l - 2, pc.palH, pc.w - 2, '#8B5A2B', '#6F4721', '#5C3A1A', '#A06E3F'));
+            const ch = pc.h - pc.palH;
+            items.push(cuboid(pc.x + 2, y0 + pc.palH, pc.z + 2, pc.l - 4, ch - 1, pc.w - 4,
+              pc.color, adjustColor(pc.color, -20), adjustColor(pc.color, -38), adjustColor(pc.color, 12)));
+          } else {
+            items.push(cuboid(pc.x + 1, y0, pc.z + 1, pc.l - 2, pc.h - 1, pc.w - 2,
+              pc.color, adjustColor(pc.color, -20), adjustColor(pc.color, -38), adjustColor(pc.color, 12)));
+          }
+        }
+      });
+      items.sort((a, b) => a.depth - b.depth);
+      s += items.map(it => it.svg).join('');
+
+      // outline edges of the trailer opening (drawn last, on top)
+      const edge = (a, b) => `<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="5,4"/>`;
+      s += edge(P(0, T.h, T.w), P(T.l, T.h, T.w));
+      s += edge(P(T.l, 0, T.w), P(T.l, T.h, T.w));
+      s += edge(P(T.l, T.h, 0), P(T.l, T.h, T.w));
+
+      // dimension caption
+      const cap = P(T.l / 2, 0, T.w);
+      s += `<text x="${cap.x.toFixed(1)}" y="${(cap.y + 28).toFixed(1)}" text-anchor="middle" fill="#64748B" font-family="IBM Plex Mono,monospace" font-size="12">${(T.l / 12).toFixed(1)} ft × ${(T.w / 12).toFixed(1)} ft × ${(T.h / 12).toFixed(1)} ft</text>`;
+
+      svg.innerHTML = s;
+    }
+
+    // ---------- share link (spec 2.9) ----------
+    function buildShareUrl() {
+      const p = new URLSearchParams();
+      p.set('m', mode); p.set('u', unitSys);
+      if (mode === 'single') {
+        ['inL','inW','inH','inWt','inQty'].forEach((id, i) => p.set(['l','w','h','wt','q'][i], document.getElementById(id).value));
+        p.set('lt', loadType);
+        if (loadType === 'pallet') {
+          p.set('pp', document.getElementById('palletPreset').value);
+          p.set('ip', document.getElementById('includePallet').checked ? 1 : 0);
+          if (document.getElementById('palletPreset').value === 'custom') {
+            p.set('pl', document.getElementById('palL').value);
+            p.set('pw', document.getElementById('palW').value);
+            p.set('pwt', document.getElementById('palWt').value);
+          }
+        }
+        const com = document.getElementById('commoditySel').value;
+        if (com) p.set('com', com);
+      } else if (mode === 'reverse') {
+        p.set('rc', document.getElementById('revClass').value);
+        p.set('rb', revBasis);
+        if (revBasis === 'weight') p.set('rwt', document.getElementById('revWt').value);
+        else { p.set('rl', document.getElementById('revL').value); p.set('rw', document.getElementById('revW').value); p.set('rh', document.getElementById('revH').value); }
+      } else {
+        const rows = [];
+        document.querySelectorAll('#batchRows tr').forEach(tr => {
+          rows.push([tr.querySelector('.b-name').value.replace(/[~|]/g, ' '),
+            tr.querySelector('.b-l').value, tr.querySelector('.b-w').value, tr.querySelector('.b-h').value,
+            tr.querySelector('.b-wt').value, tr.querySelector('.b-qty').value].join('~'));
+        });
+        p.set('b', rows.join('|'));
+        p.set('bp', document.getElementById('batchIncludePallet').checked ? 1 : 0);
+      }
+      return location.origin + location.pathname + '?' + p.toString();
+    }
+
+    function copyShareLink(btn) {
+      navigator.clipboard.writeText(buildShareUrl()).then(() => {
+        const orig = t('btnShare');
+        btn.textContent = t('btnShareDone');
+        setTimeout(() => { btn.textContent = orig; }, 1600);
+      });
+    }
+
+    function copyEmbed(btn) {
+      navigator.clipboard.writeText(document.getElementById('embedCode').textContent).then(() => {
+        const orig = t('btnCopyEmbed');
+        btn.textContent = t('btnCopyEmbedDone');
+        setTimeout(() => { btn.textContent = orig; }, 1600);
+      });
+    }
+
+    // restore inputs from a shared URL
+    function applyParams(qs) {
+      const g = k => qs.get(k);
+      if (g('u') === 'met') setUnits('met');
+      const m = g('m');
+      if (g('lt')) setLoadType(g('lt'));
+      if (g('pp')) { document.getElementById('palletPreset').value = g('pp'); onPalletPreset(); }
+      if (g('pl')) document.getElementById('palL').value = g('pl');
+      if (g('pw')) document.getElementById('palW').value = g('pw');
+      if (g('pwt')) document.getElementById('palWt').value = g('pwt');
+      if (g('ip') !== null) document.getElementById('includePallet').checked = g('ip') === '1';
+      ['l','w','h','wt','q'].forEach((k, i) => { if (g(k)) document.getElementById(['inL','inW','inH','inWt','inQty'][i]).value = g(k); });
+      if (g('com')) document.getElementById('commoditySel').value = g('com');
+      if (g('rc')) document.getElementById('revClass').value = g('rc');
+      if (g('rb')) setRevBasis(g('rb'));
+      if (g('rwt')) document.getElementById('revWt').value = g('rwt');
+      if (g('rl')) document.getElementById('revL').value = g('rl');
+      if (g('rw')) document.getElementById('revW').value = g('rw');
+      if (g('rh')) document.getElementById('revH').value = g('rh');
+      if (g('b')) {
+        document.getElementById('batchRows').innerHTML = '';
+        g('b').split('|').forEach(row => {
+          const f = row.split('~');
+          if (f.length === 6) addBatchRow({ name: f[0], l: f[1], w: f[2], h: f[3], wt: f[4], q: f[5] });
+        });
+        document.getElementById('batchIncludePallet').checked = g('bp') === '1';
+      }
+      if (m) setMode(m);
+    }
+
+    // ---------- history (localStorage, max 5, spec 2.9) ----------
+    let histTimer = null;
+    function pushHistorySoon() {
+      clearTimeout(histTimer);
+      histTimer = setTimeout(pushHistory, 2000);   // settle before recording
+    }
+    function pushHistory() {
+      if (!lastResult || lastResult.mode === 'reverse') return;
+      let hist = [];
+      try { hist = JSON.parse(localStorage.getItem('fcc_history') || '[]'); } catch (e) {}
+      const entry = {
+        ts: Date.now(), url: buildShareUrl(),
+        cls: lastResult.cls, d: lastResult.density.toFixed(2)
+      };
+      if (hist.length && hist[0].url === entry.url) return;   // unchanged
+      hist.unshift(entry);
+      hist = hist.slice(0, 5);
+      try { localStorage.setItem('fcc_history', JSON.stringify(hist)); } catch (e) {}
+      renderHistory();
+    }
+    function renderHistory() {
+      let hist = [];
+      try { hist = JSON.parse(localStorage.getItem('fcc_history') || '[]'); } catch (e) {}
+      const wrap = document.getElementById('historyChips');
+      wrap.innerHTML = hist.map(h =>
+        `<span class="hist-chip" onclick="location.href='${h.url.replace(/'/g, '')}'"><b>${h.cls}</b> · ${h.d} PCF</span>`).join('');
+      document.getElementById('historyWrap').style.display = hist.length ? '' : 'none';
+    }
+
+    // ---------- PDF report (print CSS, white minimal design, spec 2.9) ----------
+    function nextRefNumber() {
+      const today = new Date();
+      const ymd = today.getFullYear() + String(today.getMonth() + 1).padStart(2, '0') + String(today.getDate()).padStart(2, '0');
+      let n = 1;
+      try {
+        const saved = JSON.parse(localStorage.getItem('fcc_ref') || '{}');
+        if (saved.ymd === ymd) n = saved.n + 1;
+        localStorage.setItem('fcc_ref', JSON.stringify({ ymd, n }));
+      } catch (e) {}
+      return 'FC-' + ymd + '-' + String(n).padStart(4, '0');
+    }
+
+    function savePdf() {
+      const r = lastResult;
+      if (!r || r.mode === 'reverse') { window.print(); return; }
+      const ref = nextRefNumber();
+      const now = new Date();
+      const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+      // relative cost gauge as plain SVG so it prints crisply
+      const idx = ALL_CLASSES.indexOf(r.cls);
+      const pct = idx < 0 ? 0.5 : idx / (ALL_CLASSES.length - 1);
+      const gx = 20 + pct * 560;
+      const gaugeSvg =
+        `<svg width="600" height="46" viewBox="0 0 600 46" xmlns="http://www.w3.org/2000/svg">` +
+        `<defs><linearGradient id="pg" x1="0" x2="1"><stop offset="0" stop-color="#10B981"/><stop offset="0.5" stop-color="#FBBF24"/><stop offset="1" stop-color="#EF4444"/></linearGradient></defs>` +
+        `<rect x="20" y="16" width="560" height="12" rx="6" fill="url(#pg)"/>` +
+        `<rect x="${(gx - 2).toFixed(1)}" y="10" width="4" height="24" rx="2" fill="#0F172A"/>` +
+        `<text x="20" y="44" font-family="monospace" font-size="9" fill="#64748B">Class 50</text>` +
+        `<text x="580" y="44" text-anchor="end" font-family="monospace" font-size="9" fill="#64748B">Class 500</text></svg>`;
+
+      let shipRows = '';
+      if (r.mode === 'single') {
+        shipRows =
+          `<tr><th>${t('prDims')}</th><td>${fmtDims(r.L, r.W, r.H)}</td><th>${t('prWeight')}</th><td>${fmtN(showWt(r.wt), 1)} ${wtUnit()}</td></tr>` +
+          `<tr><th>${t('prQty')}</th><td>${r.qty}</td><th>${t('prLoad')}</th><td>${r.loadType === 'pallet' ? t('prPalletized') : t('prFloor')}${r.includePallet ? ' + ' + t('prPallet') + ' ' + fmtN(showLen(r.pal.l)) + '×' + fmtN(showLen(r.pal.w)) + ' ' + lenUnit() : ''}</td></tr>` +
+          `<tr><th>${t('prCube')}</th><td>${fmtN(r.cube, 2)} ft³</td><th>PCF</th><td>${r.density.toFixed(2)}</td></tr>`;
+      } else {
+        shipRows = r.rows.map(d =>
+          `<tr><th>${d.name} ×${d.q}</th><td>${fmtDims(d.l, d.w, d.h)}</td><th>${fmtN(showWt(d.wt), 1)} ${wtUnit()}</th><td>PCF ${d.density.toFixed(2)} → Class ${d.cls}</td></tr>`).join('') +
+          `<tr><th>${t('dTotal')}</th><td>${fmtN(r.totCube, 2)} ft³</td><th>${fmtN(showWt(r.totWt), 1)} ${wtUnit()}</th><td>PCF ${r.density.toFixed(2)}</td></tr>`;
+      }
+
+      let comNote = '';
+      if (r.mode === 'single' && r.commodity) {
+        const c = COMMODITIES.find(x => x.key === r.commodity);
+        if (c) comNote = `<div class="pr-title">${t('prCommodity')}</div><div class="pr-note">${(currentLang === 'ko' ? c.ko : c.en)} — class ~${c.cls}${c.fixed ? ' (NMFC item often governs)' : ''}</div>`;
+      }
+
+      document.getElementById('printReport').innerHTML =
+        `<div class="pr-head">` +
+        `<div><div class="pr-brand">▦ Freight Class Calculator</div><div class="pr-note">${t('prTitle')}</div></div>` +
+        `<div class="pr-meta">${t('prRef')}: ${ref}<br>${t('prGenerated')}: ${dateStr}</div></div>` +
+        `<div class="pr-title">${t('prShipment')}</div>` +
+        `<table class="pr-table">${shipRows}</table>` +
+        `<div class="pr-title">${t('prResult')}</div>` +
+        `<div class="pr-result">` +
+        `<div class="pr-card"><div class="l">${t('prDensity')}</div><div class="v">${r.density.toFixed(2)}</div></div>` +
+        `<div class="pr-card"><div class="l">${t('prClass')}</div><div class="v">${r.cls}</div>` +
+        `<div class="pr-note">${t('prBasis')}: ${r.rangeMax === Infinity ? r.rangeMin + '+' : r.rangeMin + '–' + r.rangeMax} PCF · ${t('prAlt')}: Class ${r.cls25} (sub ${r.sub25})</div></div>` +
+        `</div>` +
+        `<div class="pr-title">${t('prGauge')}</div><div class="pr-gauge">${gaugeSvg}</div>` +
+        comNote +
+        `<div class="pr-foot">${t('prDisclaimer')}</div>`;
+
+      window.print();
+    }
+
+    // ---------- init ----------
+    function init() {
+      // reverse class dropdown
+      document.getElementById('revClass').innerHTML =
+        ALL_CLASSES.map(c => `<option value="${c}" ${c === '70' ? 'selected' : ''}>Class ${c}</option>`).join('');
+      populateCommoditySelect();
+      updateUnitTags();
+      addBatchRow({ name: 'Item 1', l: 48, w: 40, h: 40, wt: 400, q: 1 });
+      addBatchRow({ name: 'Item 2', l: 30, w: 24, h: 30, wt: 150, q: 2 });
+
+      const qs = new URLSearchParams(location.search);
+      if (qs.get('embed') === '1') document.body.classList.add('embed-mode');
+      if ([...qs.keys()].length) applyParams(qs);
+
+      renderHistory();
+      onInput(true);
+    }
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
