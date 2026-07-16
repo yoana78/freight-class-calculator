@@ -27,11 +27,16 @@
   <meta property="og:title" id="ogTitle" content="Freight Class Calculator — NMFC Density Class (2025 Updated)">
   <meta property="og:description" id="ogDesc" content="Enter dimensions and weight to get density (PCF) and NMFC freight class instantly. Updated for the July 2025 NMFC changes. Reverse calculator, batch mode and truck loading 3D.">
   <meta property="og:locale" id="ogLocale" content="en_US">
+  <meta property="og:image" content="https://freight-class-density-calculator.pages.dev/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Freight Class Calculator - NMFC density to freight class, updated for the July 2025 NMFC changes">
 
   <!-- Twitter -->
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" id="twTitle" content="Freight Class Calculator — NMFC Density Class (2025 Updated)">
   <meta name="twitter:description" id="twDesc" content="Enter dimensions and weight to get density (PCF) and NMFC freight class instantly. Updated for the July 2025 NMFC changes.">
+  <meta name="twitter:image" content="https://freight-class-density-calculator.pages.dev/og-image.png">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -734,9 +739,17 @@
           <h3 id="txtVizTitle">Truck Loading Preview · Isometric 3D</h3>
           <div class="viz-controls">
             <select id="truckSel" onchange="drawTruck()" style="width:auto; padding: 8px 10px;">
-              <option value="van53" id="optVan53">53 ft Dry Van (630 × 98.5 × 108 in)</option>
-              <option value="ct40" id="optCt40">40 ft Container (474 × 92.5 × 94.5 in)</option>
-              <option value="ct20" id="optCt20">20 ft Container (232.5 × 92.5 × 94.5 in)</option>
+              <optgroup label="US Domestic (LTL)" id="optgDom">
+                <option value="van53" id="optVan53">53 ft Dry Van (630 × 98.5 × 108 in)</option>
+                <option value="van48" id="optVan48">48 ft Dry Van (570 × 98.5 × 108 in)</option>
+                <option value="pup28" id="optPup28">28 ft Pup Trailer (330 × 98 × 107 in)</option>
+                <option value="box26" id="optBox26">26 ft Box Truck (300 × 96 × 96 in)</option>
+                <option value="reef53" id="optReef53">53 ft Reefer (623 × 96 × 102 in)</option>
+              </optgroup>
+              <optgroup label="Export / Container (drayage)" id="optgExp">
+                <option value="ct40" id="optCt40">40 ft Container (474 × 92.5 × 94.5 in)</option>
+                <option value="ct20" id="optCt20">20 ft Container (232.5 × 92.5 × 94.5 in)</option>
+              </optgroup>
             </select>
           </div>
         </div>
@@ -1007,10 +1020,18 @@
     };
 
     // ---------- Truck / container interiors (inches) ----------
+    // Interior dims are typical mid-range figures; carriers vary slightly
+    // (e.g. 53ft van height is quoted 108-110in depending on source).
+    // Container payloads reflect ISO max gross minus tare — the 20ft carries
+    // slightly MORE than the 40ft because the 40ft box itself is heavier.
     const TRUCKS = {
-      van53: { l: 630,   w: 98.5, h: 108,  payload: 45000 },
-      ct40:  { l: 474,   w: 92.5, h: 94.5, payload: 59000 },
-      ct20:  { l: 232.5, w: 92.5, h: 94.5, payload: 55000 }
+      van53:  { l: 630,   w: 98.5, h: 108,  payload: 45000 },
+      van48:  { l: 570,   w: 98.5, h: 108,  payload: 44500 },
+      pup28:  { l: 330,   w: 98,   h: 107,  payload: 22500 },
+      box26:  { l: 300,   w: 96,   h: 96,   payload: 10000 },
+      reef53: { l: 623,   w: 96,   h: 102,  payload: 43500 },
+      ct40:   { l: 474,   w: 92.5, h: 94.5, payload: 58800 },
+      ct20:   { l: 232.5, w: 92.5, h: 94.5, payload: 62000 }
     };
 
     // ---------- Common commodities (NMFC override awareness, spec 2.8) ----------
@@ -1074,7 +1095,12 @@
         lblHistory: "Recent calculations",
         txtShowViz: "Show truck loading 3D preview", txtHideViz: "Hide truck loading 3D preview",
         txtVizTitle: "Truck Loading Preview · Isometric 3D",
+        optgDomLbl: "US Domestic (LTL)", optgExpLbl: "Export / Container (drayage)",
         optVan53: "53 ft Dry Van (630 × 98.5 × 108 in)",
+        optVan48: "48 ft Dry Van (570 × 98.5 × 108 in)",
+        optPup28: "28 ft Pup Trailer (330 × 98 × 107 in)",
+        optBox26: "26 ft Box Truck (300 × 96 × 96 in)",
+        optReef53: "53 ft Reefer (623 × 96 × 102 in)",
         optCt40: "40 ft Container (474 × 92.5 × 94.5 in)",
         optCt20: "20 ft Container (232.5 × 92.5 × 94.5 in)",
         txtLegCargo: "Your handling units", txtLegPallet: "Pallet", txtLegTruck: "Trailer interior",
@@ -1150,7 +1176,12 @@
         lblHistory: "최근 계산 기록",
         txtShowViz: "트럭 적재 3D 미리보기 열기", txtHideViz: "트럭 적재 3D 미리보기 닫기",
         txtVizTitle: "트럭 적재 미리보기 · Isometric 3D",
+        optgDomLbl: "미국 국내 (LTL)", optgExpLbl: "수출 / 컨테이너 (드레이지)",
         optVan53: "53 ft 드라이밴 (630 × 98.5 × 108 in)",
+        optVan48: "48 ft 드라이밴 (570 × 98.5 × 108 in)",
+        optPup28: "28 ft 펍 트레일러 (330 × 98 × 107 in)",
+        optBox26: "26 ft 박스트럭 (300 × 96 × 96 in)",
+        optReef53: "53 ft 냉장밴 리퍼 (623 × 96 × 102 in)",
         optCt40: "40 ft 컨테이너 (474 × 92.5 × 94.5 in)",
         optCt20: "20 ft 컨테이너 (232.5 × 92.5 × 94.5 in)",
         txtLegCargo: "내 핸들링 유닛", txtLegPallet: "팔레트", txtLegTruck: "트레일러 내부",
@@ -1208,6 +1239,9 @@
       document.title = dict.seoTitle;
       const md = document.querySelector('meta[name=description]');
       if (md) md.setAttribute('content', dict.seoDesc);
+      // optgroup labels are attributes, not text nodes — handled outside the id loop
+      document.getElementById('optgDom').label = t('optgDomLbl');
+      document.getElementById('optgExp').label = t('optgExpLbl');
       populateCommoditySelect();
       renderHistory();
       onInput(true);
@@ -1246,6 +1280,12 @@
     function showLen(inches) { return unitSys === 'met' ? (inches * 2.54) : inches; }
     function showWt(lbs) { return unitSys === 'met' ? (lbs / LBS_PER_KG) : lbs; }
     function fmtN(n, d) { return Number(n.toFixed(d === undefined ? 1 : d)).toLocaleString('en-US'); }
+
+    // Escape user-supplied text before it enters any innerHTML sink (batch item
+    // names travel through the results table, the PDF report and share URLs).
+    function escHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
 
     // ---------- unit toggle: convert every visible value in place (spec 1.1) ----------
     const LEN_FIELDS = ['inL','inW','inH','palL','palW','revL','revW','revH'];
@@ -1353,7 +1393,7 @@
       const v = vals || {};
       const name = v.name !== undefined ? v.name : ((currentLang === 'ko' ? '품목 ' : 'Item ') + batchRowSeq);
       tr.innerHTML =
-        `<td><input type="text" class="b-name" value="${name.replace(/"/g, '&quot;')}" oninput="onInput()" style="min-width:70px;"></td>` +
+        `<td><input type="text" class="b-name" value="${escHtml(name)}" oninput="onInput()" style="min-width:70px;"></td>` +
         `<td><input type="number" class="b-len b-l" min="0" step="any" value="${v.l !== undefined ? v.l : 48}" oninput="onInput()" style="width:62px;"></td>` +
         `<td><input type="number" class="b-len b-w" min="0" step="any" value="${v.w !== undefined ? v.w : 40}" oninput="onInput()" style="width:62px;"></td>` +
         `<td><input type="number" class="b-len b-h" min="0" step="any" value="${v.h !== undefined ? v.h : 40}" oninput="onInput()" style="width:62px;"></td>` +
@@ -1512,7 +1552,7 @@
       // per-row table
       let html = `<tr><th>${t('bthRow')}</th><th>ft³</th><th>${t('bthDensity')}</th><th>${t('bthClass')}</th></tr>`;
       detail.forEach(d => {
-        html += `<tr><td>${d.name}${d.q > 1 ? ' ×' + d.q : ''}</td><td>${fmtN(d.cube, 1)}</td><td>${d.density.toFixed(2)}</td><td class="cls">${d.cls}</td></tr>`;
+        html += `<tr><td>${escHtml(d.name)}${d.q > 1 ? ' ×' + d.q : ''}</td><td>${fmtN(d.cube, 1)}</td><td>${d.density.toFixed(2)}</td><td class="cls">${d.cls}</td></tr>`;
       });
       document.getElementById('batchResTable').innerHTML = html;
 
@@ -1897,8 +1937,23 @@
       let hist = [];
       try { hist = JSON.parse(localStorage.getItem('fcc_history') || '[]'); } catch (e) {}
       const wrap = document.getElementById('historyChips');
-      wrap.innerHTML = hist.map(h =>
-        `<span class="hist-chip" onclick="location.href='${h.url.replace(/'/g, '')}'"><b>${h.cls}</b> · ${h.d} PCF</span>`).join('');
+      wrap.innerHTML = '';
+      hist.forEach(h => {
+        // built via DOM APIs: the stored URL never touches an HTML/JS string context
+        const chip = document.createElement('span');
+        chip.className = 'hist-chip';
+        const b = document.createElement('b');
+        b.textContent = h.cls;
+        chip.appendChild(b);
+        chip.appendChild(document.createTextNode(' · ' + h.d + ' PCF'));
+        chip.addEventListener('click', () => {
+          try {
+            const u = new URL(h.url, location.href);
+            if (u.origin === location.origin) location.href = u.href;
+          } catch (e) {}
+        });
+        wrap.appendChild(chip);
+      });
       document.getElementById('historyWrap').style.display = hist.length ? '' : 'none';
     }
 
@@ -1943,7 +1998,7 @@
           `<tr><th>${t('prCube')}</th><td>${fmtN(r.cube, 2)} ft³</td><th>PCF</th><td>${r.density.toFixed(2)}</td></tr>`;
       } else {
         shipRows = r.rows.map(d =>
-          `<tr><th>${d.name} ×${d.q}</th><td>${fmtDims(d.l, d.w, d.h)}</td><th>${fmtN(showWt(d.wt), 1)} ${wtUnit()}</th><td>PCF ${d.density.toFixed(2)} → Class ${d.cls}</td></tr>`).join('') +
+          `<tr><th>${escHtml(d.name)} ×${d.q}</th><td>${fmtDims(d.l, d.w, d.h)}</td><th>${fmtN(showWt(d.wt), 1)} ${wtUnit()}</th><td>PCF ${d.density.toFixed(2)} → Class ${d.cls}</td></tr>`).join('') +
           `<tr><th>${t('dTotal')}</th><td>${fmtN(r.totCube, 2)} ft³</td><th>${fmtN(showWt(r.totWt), 1)} ${wtUnit()}</th><td>PCF ${r.density.toFixed(2)}</td></tr>`;
       }
 
