@@ -592,10 +592,27 @@
                 </div>
               </div>
               <div class="form-group">
-                <label class="form-label" id="lblMaxStack">Max load height per pallet <span class="hint" id="hintMaxStack">(incl. pallet — most LTL carriers cap around 96 in)</span></label>
+                <label class="form-label" id="lblPalletLimits">Per-pallet limits <span class="hint" id="hintPalletLimits">(exceeding either simply adds more pallets)</span></label>
                 <div class="input-row two">
                   <div class="input-wrap"><span class="tag" id="tagMaxStack">Max H (in)</span><input type="number" id="inMaxStack" min="0" step="any" value="96" oninput="onInput()"></div>
+                  <div class="input-wrap"><span class="tag" id="tagMaxWt">Max load (lbs)</span><input type="number" id="inMaxWt" min="0" step="any" value="2500" oninput="onInput()"></div>
                 </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" id="lblPackOpts">Packing options</label>
+                <div class="input-row two">
+                  <div class="input-wrap"><span class="tag" id="tagGap">Gap (in)</span><input type="number" id="inGap" min="0" step="any" value="0" oninput="onInput()"></div>
+                  <select id="stackRule" onchange="onInput()">
+                    <option value="column" id="optColumn">Column stack (aligned layers)</option>
+                    <option value="interlock" id="optInterlock">Interlocked (alternating layers)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="check-row">
+                  <input type="checkbox" id="rotate3d" onchange="onInput()">
+                  <span id="lblRotate3d">Any-side-up: try all 3 carton orientations (off = this side up)</span>
+                </label>
               </div>
               <div class="form-group">
                 <label class="check-row">
@@ -633,16 +650,31 @@
               </label>
             </div>
             <div class="form-group" id="batchPalletOpts">
-              <label class="form-label" id="lblBatchPreset">Pallet preset & max load height (incl. pallet)</label>
+              <label class="form-label" id="lblBatchPreset">Pallet preset & per-pallet limits (incl. pallet)</label>
               <div class="input-row two">
                 <select id="batchPalletPreset" onchange="onInput()"></select>
                 <div class="input-wrap"><span class="tag" id="tagBatchMaxStack">Max H (in)</span><input type="number" id="batchMaxStack" min="0" step="any" value="96" oninput="onInput()"></div>
               </div>
+              <div class="input-row two" style="margin-top:8px;">
+                <div class="input-wrap"><span class="tag" id="tagBatchMaxWt">Max load (lbs)</span><input type="number" id="batchMaxWt" min="0" step="any" value="2500" oninput="onInput()"></div>
+                <div class="input-wrap"><span class="tag" id="tagBatchGap">Gap (in)</span><input type="number" id="batchGap" min="0" step="any" value="0" oninput="onInput()"></div>
+              </div>
+              <label class="check-row" style="margin-top:10px;">
+                <input type="checkbox" id="batchRotate3d" onchange="onInput()">
+                <span id="lblBatchRotate3d">Any-side-up: try all 3 carton orientations</span>
+              </label>
+              <label class="check-row" style="margin-top:8px;">
+                <input type="checkbox" id="batchMixed" onchange="onInput()">
+                <span id="lblBatchMixed">Mixed-SKU pallets: different items may share a pallet, layer by layer</span>
+              </label>
             </div>
           </div>
 
           <!-- ============ REVERSE MODE ============ -->
           <div id="paneReverse" class="hidden">
+            <div class="warn-box info" style="margin: 0 0 14px;">
+              <span class="w-ico">🎯</span><span id="revExplain">Packaging optimizer: pick the class you WANT to pay for, and this shows the cube (or weight) your shipment must hit to get it — e.g. "to rate as Class 70, 500 lbs must pack into 22.2–33.3 ft³".</span>
+            </div>
             <div class="form-group">
               <label class="form-label" id="lblRevClass">Target freight class</label>
               <select id="revClass" onchange="onInput()"></select>
@@ -752,7 +784,8 @@
         <div class="card-head">
           <h3 id="txtVizTitle">Truck Loading Preview · Isometric 3D</h3>
           <div class="viz-controls">
-            <select id="truckSel" onchange="drawTruck()" style="width:auto; padding: 8px 10px;">
+            <span id="recTruckBadge" class="n" style="color: var(--green); font-weight:700;"></span>
+            <select id="truckSel" onchange="onTruckManual()" style="width:auto; padding: 8px 10px;">
               <optgroup label="US Domestic (LTL)" id="optgDom">
                 <option value="van53" id="optVan53">53 ft Dry Van (630 × 98.5 × 108 in)</option>
                 <option value="van48" id="optVan48">48 ft Dry Van (570 × 98.5 × 108 in)</option>
@@ -1137,34 +1170,109 @@
       return rects.map(r => ({ ...r, x: r.x + ox, y: r.y + oy }));
     }
 
-    // Stack qty cartons onto pallets: layer layout from bestPack, layers capped
-    // by maxH (incl. pallet). Returns null when the carton cannot go on this
-    // pallet at all (footprint too big or no room for a single layer).
-    function packOnPallet(cl, cw, ch, cwt, qty, pal, maxH) {
-      const layer = bestPack(pal.l, pal.w, cl, cw);
-      if (!layer.count) return null;
-      const maxLayers = Math.floor((maxH - pal.h) / ch);
-      if (maxLayers < 1) return null;
-      const perLayer = layer.count;
-      const perPallet = perLayer * maxLayers;
-      const palletCount = Math.ceil(qty / perPallet);
+    // Mirror a layer layout across the pallet length axis — used to draw
+    // interlocked (alternating) layers distinctly from column stacks.
+    function mirrorRects(rects, L) {
+      return rects.map(r => ({ ...r, x: L - r.x - r.w }));
+    }
+
+    // Stack qty cartons onto pallets.
+    // opts: { maxH (incl pallet), maxWt (cargo lbs per pallet, 0 = no cap),
+    //         gap (clearance added around each carton), rotate3d (try all
+    //         three which-side-up orientations) }
+    // Exceeding a cap never fails — it just splits the load onto more pallets.
+    // Returns null only when not even ONE carton fits a pallet within caps.
+    function packOnPallet(cl, cw, ch, cwt, qty, pal, opts) {
+      const orients = opts.rotate3d
+        ? [[cl, cw, ch], [cl, ch, cw], [cw, ch, cl]]
+        : [[cl, cw, ch]];
+      let best = null;
+      for (const [a, b, h] of orients) {
+        const layer = bestPack(pal.l, pal.w, a + opts.gap, b + opts.gap);
+        if (!layer.count) continue;
+        const maxLayersH = Math.floor((opts.maxH - pal.h) / h);
+        if (maxLayersH < 1) continue;
+        const maxByWt = (opts.maxWt > 0 && cwt > 0) ? Math.floor(opts.maxWt / cwt) : Infinity;
+        if (maxByWt < 1) continue;
+        const perLayer = layer.count;
+        const perPallet = Math.min(perLayer * maxLayersH, maxByWt);
+        const palletCount = Math.ceil(qty / perPallet);
+        // total cube across all pallets — the freight-class objective is the
+        // densest (smallest-cube) load, so fewer pallets first, then less cube
+        let cube = 0, rem2 = qty;
+        for (let i = 0; i < palletCount; i++) {
+          const cartons = Math.min(rem2, perPallet);
+          cube += pal.l * pal.w * (pal.h + Math.ceil(cartons / perLayer) * h) / 1728;
+          rem2 -= cartons;
+        }
+        if (best && (palletCount > best.palletCount ||
+            (palletCount === best.palletCount && cube >= best.cube))) continue;
+        best = { a, b, h, layer, perLayer, maxLayersH, perPallet, palletCount, cube };
+      }
+      if (!best) return null;
+
+      const { h: ch2, layer, perLayer, perPallet, palletCount } = best;
+      const rects = centerRects(layer.rects, pal.l, pal.w);
       const pallets = [];
       let rem = qty, totCube = 0, totWt = 0;
       for (let i = 0; i < palletCount; i++) {
         const cartons = Math.min(rem, perPallet);
         const layers = Math.ceil(cartons / perLayer);
-        const h = pal.h + layers * ch;
+        const h = pal.h + layers * ch2;
         const wtU = pal.wt + cartons * cwt;
         totCube += pal.l * pal.w * h / 1728;
         totWt += wtU;
         pallets.push({ cartons, layers, h, wt: wtU });
         rem -= cartons;
       }
-      const u = pallets[0];   // representative (fullest) handling unit
+      const u = pallets[0];   // fullest handling unit = classification basis
       return {
-        perLayer, maxLayers, perPallet, palletCount, pallets, totCube, totWt,
-        rects: centerRects(layer.rects, pal.l, pal.w), pattern: layer.pattern, ch,
+        perLayer, maxLayers: best.maxLayersH, perPallet, palletCount, pallets, totCube, totWt,
+        rects, pattern: layer.pattern, ch: ch2, rotated3d: ch2 !== ch,
         unit: { l: pal.l, w: pal.w, h: u.h, wt: u.wt, cartons: u.cartons, layers: u.layers }
+      };
+    }
+
+    // Mixed-SKU palletizing (batch mode): each layer holds one SKU, and layers
+    // of different SKUs stack onto shared pallets, first-fit within the height
+    // and weight caps — the "layer picking" pattern used in real warehouses.
+    function packMixed(rows, pal, opts) {
+      const layerList = [];   // { row, cartons, rects, h, wt }
+      for (let ri = 0; ri < rows.length; ri++) {
+        const r = rows[ri];
+        const p1 = packOnPallet(r.l, r.w, r.h, r.wt, r.q, pal, opts);
+        if (!p1) return null;                    // one SKU can't palletize -> caller falls back
+        let rem = r.q;
+        while (rem > 0) {
+          const cartons = Math.min(rem, p1.perLayer);
+          layerList.push({
+            row: ri, cartons, h: p1.ch, wt: cartons * r.wt,
+            rects: cartons === p1.perLayer ? p1.rects : p1.rects.slice(0, cartons)
+          });
+          rem -= cartons;
+        }
+      }
+      // taller layers first so partial layers ride on top
+      layerList.sort((x, y) => y.h - x.h);
+      const pallets = [];
+      for (const ls of layerList) {
+        let target = pallets.find(p =>
+          p.h + ls.h <= opts.maxH && (!(opts.maxWt > 0) || p.cargoWt + ls.wt <= opts.maxWt));
+        if (!target) { target = { h: pal.h, cargoWt: 0, layers: [] }; pallets.push(target); }
+        target.layers.push(ls);
+        target.h += ls.h;
+        target.cargoWt += ls.wt;
+      }
+      let totCube = 0, totWt = 0;
+      pallets.forEach(p => {
+        p.wt = pal.wt + p.cargoWt;
+        totCube += pal.l * pal.w * p.h / 1728;
+        totWt += p.wt;
+      });
+      const u = pallets[0];
+      return {
+        mixed: true, palletCount: pallets.length, pallets, totCube, totWt,
+        unit: { l: pal.l, w: pal.w, h: u.h, wt: u.wt }
       };
     }
 
@@ -1211,7 +1319,10 @@
         txtInputTitle: "Shipment Details",
         tabSingle: "Single Item", tabBatch: "Batch (Multi-Item)", tabReverse: "Reverse",
         lblDims: 'Item / carton dimensions <span class="hint">(per piece — palletized mode auto-stacks pieces onto the pallet)</span>',
-        lblMaxStack: 'Max load height per pallet <span class="hint">(incl. pallet — most LTL carriers cap around 96 in)</span>',
+        lblPalletLimits: 'Per-pallet limits <span class="hint">(exceeding either simply adds more pallets)</span>',
+        lblPackOpts: "Packing options",
+        optColumn: "Column stack (aligned layers)", optInterlock: "Interlocked (alternating layers)",
+        lblRotate3d: "Any-side-up: try all 3 carton orientations (off = this side up)",
         lblLoadType: "Load type",
         txtLoadPallet: "Palletized", txtLoadFloor: "Floor loaded (no pallet)",
         lblPalletPreset: "Pallet size preset",
@@ -1228,7 +1339,11 @@
         thName: "ITEM", thWt: "WT", thQty: "QTY",
         btnAddRow: "+ Add item",
         lblBatchPallet: "Palletize each row (pieces auto-stacked onto the selected pallet)",
-        lblBatchPreset: "Pallet preset & max load height (incl. pallet)",
+        lblBatchPreset: "Pallet preset & per-pallet limits (incl. pallet)",
+        lblBatchRotate3d: "Any-side-up: try all 3 carton orientations",
+        lblBatchMixed: "Mixed-SKU pallets: different items may share a pallet, layer by layer",
+        recLabel: "Best fit", bthMixedTag: "mixed-SKU", bthPallet: "PALLET", bthContents: "CONTENTS",
+        revExplain: 'Packaging optimizer: pick the class you WANT to pay for, and this shows the cube (or weight) your shipment must hit to get it — e.g. "to rate as Class 70, 500 lbs must pack into 22.2–33.3 ft³".',
         lblRevClass: "Target freight class",
         lblRevKnown: "What do you know?",
         txtRevByWeight: "I know the weight", txtRevByDims: "I know the dimensions",
@@ -1298,7 +1413,10 @@
         txtInputTitle: "화물 정보 입력",
         tabSingle: "단일 품목", tabBatch: "배치(다중 품목)", tabReverse: "역산",
         lblDims: '품목/카톤 치수 <span class="hint">(개당 — 팔레트 적재 시 자동으로 팔레트에 적층 계산)</span>',
-        lblMaxStack: '팔레트당 최대 적재 높이 <span class="hint">(팔레트 포함 — 대다수 LTL 운송사 상한 약 96 in)</span>',
+        lblPalletLimits: '팔레트당 한도 <span class="hint">(초과 시 팔레트가 자동으로 추가됩니다)</span>',
+        lblPackOpts: "적재 옵션",
+        optColumn: "직층 적재 (Column)", optInterlock: "교차 적재 (Interlock)",
+        lblRotate3d: "방향 무관: 카톤 3축 회전 자동최적화 (해제 = 윗면 고정)",
         lblLoadType: "적재 방식",
         txtLoadPallet: "팔레트 적재", txtLoadFloor: "바닥 적재 (팔레트 없음)",
         lblPalletPreset: "팔레트 규격 프리셋",
@@ -1315,7 +1433,11 @@
         thName: "품목", thWt: "무게", thQty: "수량",
         btnAddRow: "+ 품목 추가",
         lblBatchPallet: "행별 팔레트 적재 (선택한 팔레트에 자동 적층 계산)",
-        lblBatchPreset: "팔레트 프리셋 & 최대 적재 높이 (팔레트 포함)",
+        lblBatchPreset: "팔레트 프리셋 & 팔레트당 한도 (팔레트 포함)",
+        lblBatchRotate3d: "방향 무관: 카톤 3축 회전 자동최적화",
+        lblBatchMixed: "혼합 적재: 서로 다른 품목을 레이어 단위로 같은 팔레트에 적재",
+        recLabel: "최적 차량", bthMixedTag: "혼합", bthPallet: "팔레트", bthContents: "적재 내용",
+        revExplain: '포장 최적화 도구: 원하는(내고 싶은) 클래스를 고르면, 그 등급을 받기 위해 화물이 맞춰야 할 부피(또는 무게) 범위를 알려줍니다 — 예: "Class 70을 받으려면 500 lbs 기준 부피가 22.2~33.3 ft³ 사이여야 함".',
         lblRevClass: "목표 화물 클래스",
         lblRevKnown: "알고 있는 값은?",
         txtRevByWeight: "무게를 알아요", txtRevByDims: "치수를 알아요",
@@ -1391,7 +1513,7 @@
       document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
       const dict = translations[lang];
       // ids that carry HTML (hint spans)
-      const htmlKeys = { lblDims: 1, lblCommodity: 1, lblMaxStack: 1 };
+      const htmlKeys = { lblDims: 1, lblCommodity: 1, lblPalletLimits: 1 };
       for (const key in dict) {
         const el = document.getElementById(key);
         if (!el) continue;
@@ -1450,8 +1572,8 @@
     }
 
     // ---------- unit toggle: convert every visible value in place (spec 1.1) ----------
-    const LEN_FIELDS = ['inL','inW','inH','palL','palW','revL','revW','revH','inMaxStack','batchMaxStack'];
-    const WT_FIELDS = ['inWt','palWt','revWt'];
+    const LEN_FIELDS = ['inL','inW','inH','palL','palW','revL','revW','revH','inMaxStack','batchMaxStack','inGap','batchGap'];
+    const WT_FIELDS = ['inWt','palWt','revWt','inMaxWt','batchMaxWt'];
 
     function setUnits(sys) {
       if (sys === unitSys) return;
@@ -1480,6 +1602,9 @@
       set('tagQty', currentLang === 'ko' ? '수량' : 'Qty (units)');
       set('tagPalL', 'Pal L (' + lu + ')'); set('tagPalW', 'Pal W (' + lu + ')'); set('tagPalWt', 'Pal wt (' + wu + ')');
       set('tagMaxStack', 'Max H (' + lu + ')'); set('tagBatchMaxStack', 'Max H (' + lu + ')');
+      set('tagMaxWt', 'Max load (' + wu + ')'); set('tagBatchMaxWt', 'Max load (' + wu + ')');
+      set('tagGap', 'Gap (' + lu + ')'); set('tagBatchGap', 'Gap (' + lu + ')');
+      set('tagWt', (currentLang === 'ko' ? '개당 무게' : 'Wt / pc') + ' (' + wu + ')');
       set('tagRevWt', (currentLang === 'ko' ? '무게' : 'Weight') + ' (' + wu + ')');
       set('tagRevL', 'L (' + lu + ')'); set('tagRevW', 'W (' + lu + ')'); set('tagRevH', 'H (' + lu + ')');
       document.querySelectorAll('.thL').forEach(el => el.textContent = 'L(' + lu + ')');
@@ -1623,8 +1748,12 @@
       // density is computed on the resulting handling unit.
       let pack = null;
       if (includePallet) {
-        const maxH = readLen('inMaxStack') || 96;
-        pack = packOnPallet(L, W, H, wt, qty, pal, maxH);
+        pack = packOnPallet(L, W, H, wt, qty, pal, {
+          maxH: readLen('inMaxStack') || 96,
+          maxWt: readWt('inMaxWt') || 0,
+          gap: readLen('inGap') || 0,
+          rotate3d: document.getElementById('rotate3d').checked
+        });
       }
       let effL, effW, effH, effWt, cube, density, qtyUnits;
       if (pack) {
@@ -1707,14 +1836,23 @@
       const addPal = document.getElementById('batchIncludePallet').checked;
       document.getElementById('batchPalletOpts').style.display = addPal ? '' : 'none';
       const pal = PALLETS[document.getElementById('batchPalletPreset').value] || PALLETS.gma;
-      const maxH = readLen('batchMaxStack') || 96;
+      const packOpts = {
+        maxH: readLen('batchMaxStack') || 96,
+        maxWt: readWt('batchMaxWt') || 0,
+        gap: readLen('batchGap') || 0,
+        rotate3d: document.getElementById('batchRotate3d').checked
+      };
+      const wantMixed = addPal && document.getElementById('batchMixed').checked;
       if (!rows.length) { renderEmpty(); document.getElementById('batchResTable').innerHTML = ''; return; }
+
+      // mixed-SKU pallets: one shared pool of pallets, layer-picked
+      const mixedPack = wantMixed ? packMixed(rows, pal, packOpts) : null;
 
       let totCube = 0, totWt = 0, wavgNum = 0;
       const detail = rows.map(r => {
         // palletize the row: stack its pieces onto pallets like single mode
-        if (addPal) {
-          const pack = packOnPallet(r.l, r.w, r.h, r.wt, r.q, pal, maxH);
+        if (addPal && !mixedPack) {
+          const pack = packOnPallet(r.l, r.w, r.h, r.wt, r.q, pal, packOpts);
           if (pack) {
             const unitCube = pack.unit.l * pack.unit.w * pack.unit.h / 1728;
             const density = pack.unit.wt / unitCube;
@@ -1737,13 +1875,16 @@
         return { ...r, effL, effW, effH, effWt, cube: cube * r.q, density, cls: cf.cls, pack: null };
       });
 
+      // mixed-SKU pallets replace the per-row totals with the shared pool
+      if (mixedPack) { totCube = mixedPack.totCube; totWt = mixedPack.totWt; }
+
       const density = totWt / totCube;
       const cf = classify(density, SCALE_FCDC);
       const c25 = classify(density, SCALE_2025);
       const wavg = wavgNum / totWt;
 
       lastResult = {
-        mode: 'batch', rows: detail, totCube, totWt, density,
+        mode: 'batch', rows: detail, totCube, totWt, density, mixedPack,
         cls: cf.cls, cls25: c25.cls, sub25: c25.sub, rangeMin: cf.min, rangeMax: cf.max,
         includePallet: addPal, loadType: addPal ? 'pallet' : 'floor', pal, wavg
       };
@@ -1759,17 +1900,30 @@
       chip.classList.toggle('same', c25.cls === cf.cls);
 
       document.getElementById('totalsStrip').innerHTML =
+        (mixedPack ? `<span class="tot-chip">${t('dPallets')}: <b>${mixedPack.palletCount}</b> (${t('bthMixedTag')})</span>` : '') +
         `<span class="tot-chip">${t('dCube')}: <b>${fmtN(totCube, 2)}</b> ft³</span>` +
         `<span class="tot-chip">${t('dWeight')}: <b>${fmtN(showWt(totWt), 1)}</b> ${wtUnit()}</span>` +
-        `<span class="tot-chip">${t('bthWavg')}: <b>${wavg.toFixed(1)}</b></span>`;
+        (mixedPack ? '' : `<span class="tot-chip">${t('bthWavg')}: <b>${wavg.toFixed(1)}</b></span>`);
 
-      // per-row table (cube column is the row total across its pallets/pieces)
-      let html = `<tr><th>${t('bthRow')}</th><th>ft³</th><th>${t('bthDensity')}</th><th>${t('bthClass')}</th></tr>`;
-      detail.forEach(d => {
-        const palletTag = d.pack ? ` · ${d.pack.palletCount} plt` : '';
-        html += `<tr><td>${escHtml(d.name)}${d.q > 1 ? ' ×' + d.q : ''}${palletTag}</td><td>${fmtN(d.cube, 1)}</td><td>${d.density.toFixed(2)}</td><td class="cls">${d.cls}</td></tr>`;
-      });
-      document.getElementById('batchResTable').innerHTML = html;
+      if (mixedPack) {
+        // pallet manifest: what rides on each shared pallet
+        let html = `<tr><th>${t('bthPallet')}</th><th>${t('bthContents')}</th><th>H</th><th>${t('dWeight')}</th></tr>`;
+        mixedPack.pallets.forEach((p, i) => {
+          const byRow = {};
+          p.layers.forEach(ls => { byRow[ls.row] = (byRow[ls.row] || 0) + ls.cartons; });
+          const contents = Object.entries(byRow).map(([ri, c]) => `${escHtml(rows[ri].name)} ×${c}`).join(', ');
+          html += `<tr><td>#${i + 1}</td><td style="text-align:left; font-family:var(--sans);">${contents}</td><td>${fmtN(showLen(p.h), 1)} ${lenUnit()}</td><td>${fmtN(showWt(p.wt), 1)}</td></tr>`;
+        });
+        document.getElementById('batchResTable').innerHTML = html;
+      } else {
+        // per-row table (cube column is the row total across its pallets/pieces)
+        let html = `<tr><th>${t('bthRow')}</th><th>ft³</th><th>${t('bthDensity')}</th><th>${t('bthClass')}</th></tr>`;
+        detail.forEach(d => {
+          const palletTag = d.pack ? ` · ${d.pack.palletCount} plt` : '';
+          html += `<tr><td>${escHtml(d.name)}${d.q > 1 ? ' ×' + d.q : ''}${palletTag}</td><td>${fmtN(d.cube, 1)}</td><td>${d.density.toFixed(2)}</td><td class="cls">${d.cls}</td></tr>`;
+        });
+        document.getElementById('batchResTable').innerHTML = html;
+      }
 
       updateGauge(cf.cls);
       renderWarnings();
@@ -1904,93 +2058,172 @@
     }
 
     // Build the list of handling-unit footprints to load, from the last result.
+    // Build the drawable unit list. Two shapes:
+    //  - typed:   { l,w,h,wt,q, isPallet, palH }              (floor / fallback)
+    //  - pallets: { l,w, insts:[{h,wt,pieces,grid}], palH }   (packed, per-pallet)
+    // grid = { layers: [{rects, h, color}], stackRule } — partial pallets carry
+    // only their actual cartons (rects subset), fixing the 10-vs-12 mismatch.
+    function packToUnits(pack, pal, color, stackRule) {
+      if (pack.palletCount > 60) {
+        // too many to itemize — one solid type, full-pallet height
+        return { l: pack.unit.l, w: pack.unit.w, h: pack.unit.h, wt: pack.unit.wt, q: pack.palletCount, isPallet: true, palH: pal.h, grid: null };
+      }
+      const layersFor = (cartons) => {
+        const full = Math.floor(cartons / pack.perLayer);
+        const rem = cartons - full * pack.perLayer;
+        const L = [];
+        for (let i = 0; i < full; i++) L.push({ rects: pack.rects, h: pack.ch, color });
+        if (rem > 0) L.push({ rects: pack.rects.slice(0, rem), h: pack.ch, color });
+        return L;
+      };
+      return {
+        l: pack.unit.l, w: pack.unit.w, isPallet: true, palH: pal.h,
+        insts: pack.pallets.map(p => ({
+          h: p.h, wt: p.wt, pieces: p.cartons,
+          grid: { layers: layersFor(p.cartons), stackRule }
+        }))
+      };
+    }
+
     function vizUnits() {
       const r = lastResult;
       if (!r) return null;
-      // grid: carton layout inside a packed handling unit, for detailed drawing
-      const mkGrid = (pack) => pack ? { rects: pack.rects, ch: pack.ch, layers: pack.unit.layers } : null;
       if (r.mode === 'single') {
-        const u = {
-          l: r.effL, w: r.effW, h: r.effH, wt: r.effWt, q: r.qtyUnits,
-          isPallet: r.loadType === 'pallet' && (r.includePallet || !!r.pack),
-          palH: (r.loadType === 'pallet' && r.includePallet) ? r.pal.h : 0,
-          grid: mkGrid(r.pack)
-        };
-        return { units: [u], mixed: false };
+        if (r.pack) {
+          const rule = document.getElementById('stackRule').value;
+          return { units: [packToUnits(r.pack, r.pal, VIZ_COLORS[0], rule)] };
+        }
+        return { units: [{ l: r.effL, w: r.effW, h: r.effH, wt: r.effWt, q: r.qtyUnits, isPallet: r.loadType === 'pallet' && r.includePallet, palH: (r.loadType === 'pallet' && r.includePallet) ? r.pal.h : 0, grid: null }] };
       }
       if (r.mode === 'batch' && r.rows.length) {
-        // one entry per row type; quantities become pallet counts when packed
-        return {
-          units: r.rows.map(d => ({
-            l: d.effL, w: d.effW, h: d.effH, wt: d.effWt,
-            q: d.pack ? d.pack.palletCount : d.q,
-            isPallet: r.includePallet, palH: r.includePallet ? r.pal.h : 0,
-            grid: mkGrid(d.pack)
-          })),
-          mixed: true
-        };
+        if (r.mixedPack) {
+          // shared mixed-SKU pallets: one instance per pallet, layer colors by SKU
+          return { units: [{
+            l: r.pal.l, w: r.pal.w, isPallet: true, palH: r.pal.h,
+            insts: r.mixedPack.pallets.map(p => ({
+              h: p.h, wt: p.wt, pieces: p.layers.reduce((s, ls) => s + ls.cartons, 0),
+              grid: { layers: p.layers.map(ls => ({ rects: ls.rects, h: ls.h, color: VIZ_COLORS[ls.row % VIZ_COLORS.length] })), stackRule: 'column' }
+            }))
+          }] };
+        }
+        return { units: r.rows.map((d, i) =>
+          d.pack ? packToUnits(d.pack, r.pal, VIZ_COLORS[i % VIZ_COLORS.length], 'column')
+                 : { l: d.effL, w: d.effW, h: d.effH, wt: d.effWt, q: d.q, isPallet: r.includePallet, palH: r.includePallet ? r.pal.h : 0, grid: null }) };
       }
       return null;
     }
 
     const VIZ_COLORS = ['#D2A06A', '#7FB3D5', '#A8D5A2', '#D5A6BD', '#F0C987', '#9FA8DA'];
 
-    function drawTruck() {
-      const svg = document.getElementById('truckSvg');
-      const box = vizUnits();
-      const truck = TRUCKS[document.getElementById('truckSel').value];
-      const setKpi = (id, v) => { document.getElementById(id).innerHTML = v; };
-      document.getElementById('vizWarnings').innerHTML = '';
-      if (!box) {
-        svg.innerHTML = `<text x="450" y="230" text-anchor="middle" fill="#94A3B8" font-family="Outfit,sans-serif" font-size="15">${t('vizNone')}</text>`;
-        setKpi('vkFit', '—'); setKpi('vkUtil', '— <span>%</span>'); setKpi('vkDead', '— <span>ft³</span>'); setKpi('vkLinear', '— <span>ft</span>');
-        return;
-      }
+    // ---- placement: greedy row packing along trailer length ----
+    // Pallet instances (insts) place one per floor slot, no vertical tiering;
+    // plain typed units keep tier stacking (floor-loaded cartons stack up).
+    function computePlacement(units, T) {
+      const placed = [];
+      let cursorX = 0, totalCargoVol = 0, totalWt = 0;
+      let fitUnits = 0, reqUnits = 0, piecesFit = 0, reqPieces = 0;
 
-      // ---- placement: greedy row packing along trailer length, per unit type ----
-      const T = truck;
-      const placed = [];           // {x,z,l,w,h,tiers,color,palH}
-      let cursorX = 0;             // along trailer length
-      let totalCargoVol = 0, totalWt = 0, fitCount = 0, requested = 0;
-
-      const types = box.units;
-      types.forEach((u, ti) => {
-        if (!(u.l > 0 && u.w > 0 && u.h > 0)) return;
-        // orient so the smaller side spans trailer width when it fits more per row
+      units.forEach((u, ti) => {
+        if (!(u.l > 0 && u.w > 0)) return;
         let ul = u.l, uw = u.w, swapped = false;
         const perRowA = uw <= T.w ? Math.floor(T.w / uw) : 0;
         const perRowB = ul <= T.w ? Math.floor(T.w / ul) : 0;
         if (perRowB > perRowA) { ul = u.w; uw = u.l; swapped = true; }
         const perRow = Math.floor(T.w / uw);
-        if (perRow < 1 || ul > T.l || u.h > T.h) { requested += (u.q || 1); return; }
+        const color = VIZ_COLORS[ti % VIZ_COLORS.length];
+
+        if (u.insts) {
+          reqUnits += u.insts.length;
+          reqPieces += u.insts.reduce((s, x) => s + x.pieces, 0);
+          if (perRow < 1 || ul > T.l) return;
+          let idx = 0;
+          while (idx < u.insts.length && cursorX + ul <= T.l) {
+            for (let i = 0; i < perRow && idx < u.insts.length; i++) {
+              const inst = u.insts[idx];
+              if (inst.h > T.h) { idx++; continue; }
+              placed.push({ x: cursorX, z: i * uw, l: ul, w: uw, h: inst.h, tiers: 1, color, palH: u.palH, isPallet: true, grid: inst.grid, swapped, localL: u.l });
+              totalCargoVol += ul * uw * inst.h;
+              totalWt += inst.wt;
+              fitUnits++; piecesFit += inst.pieces;
+              idx++;
+            }
+            cursorX += ul;
+          }
+          return;
+        }
+
+        if (!(u.h > 0)) return;
+        const q = u.q || 1;
+        reqUnits += q; reqPieces += q;
+        if (perRow < 1 || ul > T.l || u.h > T.h) return;
         const tiers = Math.max(1, Math.floor(T.h / u.h));
-        let remaining = u.q || 1;
-        requested += remaining;
+        let remaining = q;
         while (remaining > 0 && cursorX + ul <= T.l) {
           for (let i = 0; i < perRow && remaining > 0; i++) {
-            let stack = Math.min(tiers, remaining);
-            placed.push({ x: cursorX, z: i * uw, l: ul, w: uw, h: u.h, tiers: stack, color: VIZ_COLORS[ti % VIZ_COLORS.length], palH: u.palH, isPallet: u.isPallet, grid: u.grid, swapped });
+            const stack = Math.min(tiers, remaining);
+            placed.push({ x: cursorX, z: i * uw, l: ul, w: uw, h: u.h, tiers: stack, color, palH: u.palH, isPallet: u.isPallet, grid: null, swapped, localL: u.l });
             totalCargoVol += ul * uw * u.h * stack;
             totalWt += u.wt * stack;
-            fitCount += stack;
+            fitUnits += stack; piecesFit += stack;
             remaining -= stack;
           }
           cursorX += ul;
         }
       });
 
+      return { placed, usedLinear: cursorX, totalCargoVol, totalWt, fitUnits, reqUnits, piecesFit, reqPieces };
+    }
+
+    // Smallest domestic vehicle that takes the whole shipment (fit + payload).
+    const REC_ORDER = ['box26', 'pup28', 'van48', 'van53'];
+    function recommendTruck(units) {
+      for (const key of REC_ORDER) {
+        const T = TRUCKS[key];
+        const r = computePlacement(units, T);
+        if (r.reqUnits > 0 && r.fitUnits === r.reqUnits && r.totalWt <= T.payload) return key;
+      }
+      return 'van53';
+    }
+
+    let userTruckChoice = false;
+    function onTruckManual() { userTruckChoice = true; drawTruck(); }
+
+    function drawTruck() {
+      const svg = document.getElementById('truckSvg');
+      const box = vizUnits();
+      const setKpi = (id, v) => { document.getElementById(id).innerHTML = v; };
+      const badge = document.getElementById('recTruckBadge');
+      document.getElementById('vizWarnings').innerHTML = '';
+      if (!box) {
+        svg.innerHTML = `<text x="450" y="230" text-anchor="middle" fill="#94A3B8" font-family="Outfit,sans-serif" font-size="15">${t('vizNone')}</text>`;
+        setKpi('vkFit', '—'); setKpi('vkUtil', '— <span>%</span>'); setKpi('vkDead', '— <span>ft³</span>'); setKpi('vkLinear', '— <span>ft</span>');
+        badge.textContent = '';
+        return;
+      }
+
+      // auto-pick the best vehicle until the user chooses one manually
+      const sel = document.getElementById('truckSel');
+      const rec = recommendTruck(box.units);
+      if (!userTruckChoice && sel.value !== rec) sel.value = rec;
+      const recName = [...sel.options].find(o => o.value === rec);
+      badge.textContent = '✓ ' + t('recLabel') + ': ' + (recName ? recName.textContent.split(' (')[0] : rec);
+
+      const T = TRUCKS[sel.value];
+      const { placed, usedLinear, totalCargoVol, totalWt, fitUnits, reqUnits, piecesFit, reqPieces } = computePlacement(box.units, T);
+
       // budget for per-carton drawing: beyond this, ALL units render as solid
       // blocks (a mixed detailed/solid scene reads as a bug, so all-or-nothing)
       const totalCartonCuboids = placed.reduce((s, pc) =>
-        s + (pc.grid ? pc.grid.rects.length * pc.grid.layers * pc.tiers : 0), 0);
-      const drawCartons = totalCartonCuboids > 0 && totalCartonCuboids <= 400;
+        s + (pc.grid ? pc.grid.layers.reduce((a, ly) => a + ly.rects.length, 0) : 0), 0);
+      const drawCartons = totalCartonCuboids > 0 && totalCartonCuboids <= 500;
 
-      const usedLinear = cursorX;
       const truckVol = T.l * T.w * T.h;
       const utilization = totalCargoVol / truckVol * 100;
       const dead = (truckVol - totalCargoVol) / 1728;
 
-      setKpi('vkFit', fitCount + (requested > fitCount ? ' <span>/ ' + requested + '</span>' : ''));
+      const showPieces = piecesFit !== fitUnits || reqPieces !== reqUnits;
+      setKpi('vkFit', fitUnits + (reqUnits > fitUnits ? ' <span>/ ' + reqUnits + '</span>' : '') +
+        (showPieces ? ` <span>· ${piecesFit}${reqPieces > piecesFit ? '/' + reqPieces : ''} pcs</span>` : ''));
       setKpi('vkUtil', utilization.toFixed(1) + ' <span>%</span>');
       setKpi('vkDead', fmtN(dead, 0) + ' <span>ft³</span>');
       setKpi('vkLinear', (usedLinear / 12).toFixed(1) + ' <span>ft</span>');
@@ -2045,17 +2278,23 @@
             items.push(cuboid(pc.x + 1, y0, pc.z + 1, pc.l - 2, pc.palH, pc.w - 2, '#8B5A2B', '#6F4721', '#5C3A1A', '#A06E3F'));
             const g = pc.grid;
             if (g && drawCartons) {
-              // draw the actual carton layout from the packing engine; rect
-              // coords live in unit-local (l × w) space — swap axes when the
-              // unit was rotated to fit the trailer width
-              for (let li = 0; li < g.layers; li++) {
-                const yc = y0 + pc.palH + li * g.ch;
-                for (const rc of g.rects) {
+              // draw the actual carton layout per layer (partial layers carry a
+              // rects subset). Interlocked stacks mirror every other layer.
+              // Rect coords live in unit-local (l × w) space — swap axes when
+              // the unit was rotated to fit the trailer width.
+              let yc = y0 + pc.palH;
+              g.layers.forEach((ly, li) => {
+                let rects = ly.rects;
+                if (g.stackRule === 'interlock' && li % 2 === 1) rects = mirrorRects(rects, pc.localL);
+                const c = ly.color || pc.color;
+                const cT = c, cR = adjustColor(c, -20), cF = adjustColor(c, -38), cS = adjustColor(c, 12);
+                for (const rc of rects) {
                   const rx = pc.swapped ? rc.y : rc.x, rz = pc.swapped ? rc.x : rc.y;
                   const rw = pc.swapped ? rc.h : rc.w, rd = pc.swapped ? rc.w : rc.h;
-                  items.push(cuboid(pc.x + rx + 1, yc, pc.z + rz + 1, rw - 2, g.ch - 1, rd - 2, top, right, front, stroke));
+                  items.push(cuboid(pc.x + rx + 1, yc, pc.z + rz + 1, rw - 2, ly.h - 1, rd - 2, cT, cR, cF, cS));
                 }
-              }
+                yc += ly.h;
+              });
             } else {
               const ch = pc.h - pc.palH;
               items.push(cuboid(pc.x + 2, y0 + pc.palH, pc.z + 2, pc.l - 4, ch - 1, pc.w - 4, top, right, front, stroke));
@@ -2092,6 +2331,10 @@
           p.set('pp', document.getElementById('palletPreset').value);
           p.set('ip', document.getElementById('includePallet').checked ? 1 : 0);
           p.set('msh', document.getElementById('inMaxStack').value);
+          p.set('mw', document.getElementById('inMaxWt').value);
+          p.set('gp', document.getElementById('inGap').value);
+          p.set('rot', document.getElementById('rotate3d').checked ? 1 : 0);
+          p.set('sr', document.getElementById('stackRule').value);
           if (document.getElementById('palletPreset').value === 'custom') {
             p.set('pl', document.getElementById('palL').value);
             p.set('pw', document.getElementById('palW').value);
@@ -2116,6 +2359,10 @@
         p.set('bp', document.getElementById('batchIncludePallet').checked ? 1 : 0);
         p.set('bpp', document.getElementById('batchPalletPreset').value);
         p.set('bmsh', document.getElementById('batchMaxStack').value);
+        p.set('bmw', document.getElementById('batchMaxWt').value);
+        p.set('bgp', document.getElementById('batchGap').value);
+        p.set('brot', document.getElementById('batchRotate3d').checked ? 1 : 0);
+        p.set('bmx', document.getElementById('batchMixed').checked ? 1 : 0);
       }
       return location.origin + location.pathname + '?' + p.toString();
     }
@@ -2148,6 +2395,10 @@
       if (g('pwt')) document.getElementById('palWt').value = g('pwt');
       if (g('ip') !== null) document.getElementById('includePallet').checked = g('ip') === '1';
       if (g('msh')) document.getElementById('inMaxStack').value = g('msh');
+      if (g('mw') !== null && g('mw') !== '') document.getElementById('inMaxWt').value = g('mw');
+      if (g('gp')) document.getElementById('inGap').value = g('gp');
+      if (g('rot') !== null) document.getElementById('rotate3d').checked = g('rot') === '1';
+      if (g('sr')) document.getElementById('stackRule').value = g('sr');
       ['l','w','h','wt','q'].forEach((k, i) => { if (g(k)) document.getElementById(['inL','inW','inH','inWt','inQty'][i]).value = g(k); });
       if (g('com')) document.getElementById('commoditySel').value = g('com');
       if (g('rc')) document.getElementById('revClass').value = g('rc');
@@ -2165,6 +2416,10 @@
         document.getElementById('batchIncludePallet').checked = g('bp') === '1';
         if (g('bpp')) document.getElementById('batchPalletPreset').value = g('bpp');
         if (g('bmsh')) document.getElementById('batchMaxStack').value = g('bmsh');
+        if (g('bmw') !== null && g('bmw') !== '') document.getElementById('batchMaxWt').value = g('bmw');
+        if (g('bgp')) document.getElementById('batchGap').value = g('bgp');
+        if (g('brot') !== null) document.getElementById('batchRotate3d').checked = g('brot') === '1';
+        if (g('bmx') !== null) document.getElementById('batchMixed').checked = g('bmx') === '1';
       }
       if (m) setMode(m);
     }
