@@ -1121,6 +1121,7 @@
         revNeedDensity: "Required density", revMaxCube: "Max cube at {wt}", revMinCube: "Min cube at {wt}",
         revCubeExample: "≈ {side} cube side", revMinWt: "Min weight for {cube}", revMaxWt: "Max weight for {cube}",
         revOrMore: "or more", revLessThan: "less than",
+        revSmallerOk: "packing smaller than this is fine — density rises and the class gets even cheaper",
         bthCombined: "Combined shipment (total wt ÷ total cube)", bthRow: "Item", bthDensity: "PCF", bthClass: "CLASS",
         bthWavg: "Weight-weighted avg class (reference)",
         vkTiers: "{n} tiers high", vizPayload: "Total weight {w} exceeds the ~{p} lbs payload of this trailer.",
@@ -1201,6 +1202,7 @@
         revNeedDensity: "필요 밀도", revMaxCube: "{wt} 기준 최대 부피", revMinCube: "{wt} 기준 최소 부피",
         revCubeExample: "≈ 한 변 {side} 정육면체", revMinWt: "{cube} 기준 최소 무게", revMaxWt: "{cube} 기준 최대 무게",
         revOrMore: "이상", revLessThan: "미만",
+        revSmallerOk: "이보다 작게 포장해도 불이익 없음 — 밀도가 높아져 더 저렴한 등급이 됩니다",
         bthCombined: "통합 화물 (총 무게 ÷ 총 부피)", bthRow: "품목", bthDensity: "PCF", bthClass: "등급",
         bthWavg: "무게 가중평균 클래스 (참고용)",
         vkTiers: "{n}단 적재", vizPayload: "총 무게 {w}가 이 트레일러의 적재 한도(~{p} lbs)를 초과합니다.",
@@ -1588,8 +1590,10 @@
           `<div class="val">${isFinite(maxCube) ? fmtN(maxCube, 2) + ' ft³' : '∞'}` +
           `<br><small>${tFmt('revCubeExample', { side: sideLabel })}</small></div></div>`;
         if (minCube > 0) {
+          // "minimum" here only means "to stay in THIS class" — going smaller
+          // is not a penalty, it drops the shipment into a cheaper class.
           cells += `<div class="rev-cell"><div class="lbl">${tFmt('revMinCube', { wt: wtLabel })}</div>` +
-            `<div class="val">${fmtN(minCube, 2)} ft³<br><small>&gt; ${fmtN(minCube, 2)} ft³</small></div></div>`;
+            `<div class="val">${fmtN(minCube, 2)} ft³<br><small>${t('revSmallerOk')}</small></div></div>`;
         }
         lastResult = { mode: 'reverse', cls, range, basis: 'weight', wt, maxCube, minCube };
       } else {
