@@ -461,10 +461,11 @@
     /* ---------- Print: white, minimal, report-only ---------- */
     #printReport { display: none; }
     @media print {
-      body * { visibility: hidden; }
-      #printReport, #printReport * { visibility: visible; }
+      /* display:none (not visibility:hidden) — hidden elements still occupy
+         layout space, which printed as a long run of blank pages */
+      body > *:not(#printReport) { display: none !important; }
       #printReport {
-        display: block; position: absolute; left: 0; top: 0; width: 100%;
+        display: block; width: 100%;
         background: #FFF; color: #0F172A; font-family: var(--sans); padding: 24px;
       }
       .pr-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0F172A; padding-bottom: 10px; }
@@ -546,7 +547,7 @@
           <!-- ============ SINGLE MODE ============ -->
           <div id="paneSingle">
             <div class="form-group">
-              <label class="form-label" id="lblDims">Dimensions per handling unit <span class="hint" id="hintDims">(greatest straight-line dims, incl. projections)</span></label>
+              <label class="form-label" id="lblDims">Item / carton dimensions <span class="hint" id="hintDims">(per piece — palletized mode auto-stacks pieces onto the pallet)</span></label>
               <div class="input-row">
                 <div class="input-wrap"><span class="tag" id="tagL">L (in)</span><input type="number" id="inL" min="0" step="any" value="48" oninput="onInput()"></div>
                 <div class="input-wrap"><span class="tag" id="tagW">W (in)</span><input type="number" id="inW" min="0" step="any" value="40" oninput="onInput()"></div>
@@ -591,6 +592,12 @@
                 </div>
               </div>
               <div class="form-group">
+                <label class="form-label" id="lblMaxStack">Max load height per pallet <span class="hint" id="hintMaxStack">(incl. pallet — most LTL carriers cap around 96 in)</span></label>
+                <div class="input-row two">
+                  <div class="input-wrap"><span class="tag" id="tagMaxStack">Max H (in)</span><input type="number" id="inMaxStack" min="0" step="any" value="96" oninput="onInput()"></div>
+                </div>
+              </div>
+              <div class="form-group">
                 <label class="check-row">
                   <input type="checkbox" id="includePallet" checked onchange="onInput()">
                   <span id="lblIncludePallet">Include pallet weight & height in density (recommended — NMFC measures the handling unit as tendered)</span>
@@ -621,9 +628,16 @@
             <button class="btn-add-row" onclick="addBatchRow()" id="btnAddRow">+ Add item</button>
             <div class="form-group" style="margin-top:12px;">
               <label class="check-row">
-                <input type="checkbox" id="batchIncludePallet" onchange="onInput()">
-                <span id="lblBatchPallet">Each row is a palletized unit (add GMA pallet 37 lbs / 6 in per unit)</span>
+                <input type="checkbox" id="batchIncludePallet" checked onchange="onInput()">
+                <span id="lblBatchPallet">Palletize each row (pieces auto-stacked onto the selected pallet)</span>
               </label>
+            </div>
+            <div class="form-group" id="batchPalletOpts">
+              <label class="form-label" id="lblBatchPreset">Pallet preset & max load height (incl. pallet)</label>
+              <div class="input-row two">
+                <select id="batchPalletPreset" onchange="onInput()"></select>
+                <div class="input-wrap"><span class="tag" id="tagBatchMaxStack">Max H (in)</span><input type="number" id="batchMaxStack" min="0" step="any" value="96" oninput="onInput()"></div>
+              </div>
             </div>
           </div>
 
@@ -1019,6 +1033,141 @@
       half: { l: 48,    w: 20,   h: 5.5, wt: 25 }
     };
 
+    // ---------- Pallet footprint packing engine ----------
+    // Ported from the Pallet Loading Optimizer: evaluates plain grid, pinwheel
+    // and mixed-block layouts and keeps the one that fits the most cartons.
+    function fillGrid(rx, ry, rw, rh, a, b) {
+      if (rw <= 0 || rh <= 0) return { count: 0, rects: [] };
+      const optA = { nx: Math.floor(rw / a), ny: Math.floor(rh / b), w: a, h: b };
+      const optB = { nx: Math.floor(rw / b), ny: Math.floor(rh / a), w: b, h: a };
+      const opt = optA.nx * optA.ny >= optB.nx * optB.ny ? optA : optB;
+      const rects = [];
+      for (let i = 0; i < opt.nx; i++) for (let j = 0; j < opt.ny; j++)
+        rects.push({ x: rx + i * opt.w, y: ry + j * opt.h, w: opt.w, h: opt.h });
+      return { count: opt.nx * opt.ny, rects };
+    }
+
+    function gridForced(L, W, a, b) {
+      const nx = Math.floor(L / a), ny = Math.floor(W / b);
+      const rects = [];
+      for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++)
+        rects.push({ x: i * a, y: j * b, w: a, h: b });
+      return { count: nx * ny, rects, pattern: 'grid' };
+    }
+
+    function pinwheelPack(L, W, a, b) {
+      if (a === b) return { count: -1, rects: [], pattern: 'pinwheel' };
+      let best = { count: -1, rects: [], pattern: 'pinwheel' };
+      const maxCols = Math.floor(L / a);
+      for (let cols = 1; cols <= maxCols; cols++) {
+        const rows = Math.floor((W - cols * a) / b);
+        if (rows <= 0) continue;
+        const A = cols * a, B = rows * b;
+        if (A + B > L || A + B > W) continue;
+        const countH = cols * rows;
+        const colsV = Math.floor(B / b), rowsV = Math.floor(A / a);
+        const countV = colsV * rowsV;
+        const blockTotal = (countH + countV) * 2;
+        if (blockTotal > best.count) {
+          const rects = [];
+          const sL = A + B;
+          const ox = Math.floor((L - sL) / 2), oy = Math.floor((W - sL) / 2);
+          for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++)
+            rects.push({ x: ox + i * a, y: oy + j * b, w: a, h: b });
+          for (let i = 0; i < colsV; i++) for (let j = 0; j < rowsV; j++)
+            rects.push({ x: ox + A + i * b, y: oy + j * a, w: b, h: a });
+          for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++)
+            rects.push({ x: ox + B + i * a, y: oy + A + j * b, w: a, h: b });
+          for (let i = 0; i < colsV; i++) for (let j = 0; j < rowsV; j++)
+            rects.push({ x: ox + i * b, y: oy + B + j * a, w: b, h: a });
+          best = { count: blockTotal, rects, pattern: 'pinwheel' };
+        }
+      }
+      return best;
+    }
+
+    function hybridPack(L, W, a, b) {
+      let best = { count: -1, rects: [], pattern: 'mixed' };
+      const tryCombo = (p1, p2) => {
+        const tot = p1.count + p2.count;
+        if (tot > best.count) best = { count: tot, rects: [...p1.rects, ...p2.rects], pattern: 'mixed' };
+      };
+      for (let cols = 1; cols < Math.floor(L / a); cols++) {
+        const L1 = cols * a;
+        tryCombo(fillGrid(0, 0, L1, W, a, b), fillGrid(L1, 0, L - L1, W, b, a));
+      }
+      for (let cols = 1; cols < Math.floor(L / b); cols++) {
+        const L1 = cols * b;
+        tryCombo(fillGrid(0, 0, L1, W, b, a), fillGrid(L1, 0, L - L1, W, a, b));
+      }
+      for (let rows = 1; rows < Math.floor(W / b); rows++) {
+        const W1 = rows * b;
+        tryCombo(fillGrid(0, 0, L, W1, a, b), fillGrid(0, W1, L, W - W1, b, a));
+      }
+      for (let rows = 1; rows < Math.floor(W / a); rows++) {
+        const W1 = rows * a;
+        tryCombo(fillGrid(0, 0, L, W1, b, a), fillGrid(0, W1, L, W - W1, a, b));
+      }
+      return best;
+    }
+
+    function bestPack(L, W, a, b) {
+      const candidates = [
+        gridForced(L, W, a, b),
+        gridForced(L, W, b, a),
+        pinwheelPack(L, W, a, b),
+        hybridPack(L, W, a, b)
+      ].filter(c => c.count > 0);
+      if (!candidates.length) return { count: 0, rects: [], pattern: 'none' };
+      return candidates.reduce((best, c) => {
+        if (c.count > best.count) return c;
+        if (c.count === best.count && c.pattern === 'pinwheel' && best.pattern === 'mixed') return c;
+        return best;
+      });
+    }
+
+    function centerRects(rects, L, W) {
+      if (!rects.length) return rects;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      rects.forEach(r => {
+        minX = Math.min(minX, r.x); minY = Math.min(minY, r.y);
+        maxX = Math.max(maxX, r.x + r.w); maxY = Math.max(maxY, r.y + r.h);
+      });
+      const ox = (L - (maxX - minX)) / 2 - minX, oy = (W - (maxY - minY)) / 2 - minY;
+      return rects.map(r => ({ ...r, x: r.x + ox, y: r.y + oy }));
+    }
+
+    // Stack qty cartons onto pallets: layer layout from bestPack, layers capped
+    // by maxH (incl. pallet). Returns null when the carton cannot go on this
+    // pallet at all (footprint too big or no room for a single layer).
+    function packOnPallet(cl, cw, ch, cwt, qty, pal, maxH) {
+      const layer = bestPack(pal.l, pal.w, cl, cw);
+      if (!layer.count) return null;
+      const maxLayers = Math.floor((maxH - pal.h) / ch);
+      if (maxLayers < 1) return null;
+      const perLayer = layer.count;
+      const perPallet = perLayer * maxLayers;
+      const palletCount = Math.ceil(qty / perPallet);
+      const pallets = [];
+      let rem = qty, totCube = 0, totWt = 0;
+      for (let i = 0; i < palletCount; i++) {
+        const cartons = Math.min(rem, perPallet);
+        const layers = Math.ceil(cartons / perLayer);
+        const h = pal.h + layers * ch;
+        const wtU = pal.wt + cartons * cwt;
+        totCube += pal.l * pal.w * h / 1728;
+        totWt += wtU;
+        pallets.push({ cartons, layers, h, wt: wtU });
+        rem -= cartons;
+      }
+      const u = pallets[0];   // representative (fullest) handling unit
+      return {
+        perLayer, maxLayers, perPallet, palletCount, pallets, totCube, totWt,
+        rects: centerRects(layer.rects, pal.l, pal.w), pattern: layer.pattern, ch,
+        unit: { l: pal.l, w: pal.w, h: u.h, wt: u.wt, cartons: u.cartons, layers: u.layers }
+      };
+    }
+
     // ---------- Truck / container interiors (inches) ----------
     // Interior dims are typical mid-range figures; carriers vary slightly
     // (e.g. 53ft van height is quoted 108-110in depending on source).
@@ -1061,7 +1210,8 @@
         txtHeroP: "Enter your shipment dimensions and weight to get the density (PCF) and estimated NMFC freight class instantly — with reverse calculation, multi-item batch mode, pallet presets and a 53 ft truck loading 3D preview.",
         txtInputTitle: "Shipment Details",
         tabSingle: "Single Item", tabBatch: "Batch (Multi-Item)", tabReverse: "Reverse",
-        lblDims: 'Dimensions per handling unit <span class="hint">(greatest straight-line dims, incl. projections)</span>',
+        lblDims: 'Item / carton dimensions <span class="hint">(per piece — palletized mode auto-stacks pieces onto the pallet)</span>',
+        lblMaxStack: 'Max load height per pallet <span class="hint">(incl. pallet — most LTL carriers cap around 96 in)</span>',
         lblLoadType: "Load type",
         txtLoadPallet: "Palletized", txtLoadFloor: "Floor loaded (no pallet)",
         lblPalletPreset: "Pallet size preset",
@@ -1077,7 +1227,8 @@
         lblBatchHelp: "Enter each item on its own row. Density and class are computed per row, plus a combined shipment class.",
         thName: "ITEM", thWt: "WT", thQty: "QTY",
         btnAddRow: "+ Add item",
-        lblBatchPallet: "Each row is a palletized unit (add GMA pallet 37 lbs / 6 in per unit)",
+        lblBatchPallet: "Palletize each row (pieces auto-stacked onto the selected pallet)",
+        lblBatchPreset: "Pallet preset & max load height (incl. pallet)",
         lblRevClass: "Target freight class",
         lblRevKnown: "What do you know?",
         txtRevByWeight: "I know the weight", txtRevByDims: "I know the dimensions",
@@ -1110,8 +1261,11 @@
         btnCopyEmbed: "📋 Copy embed code", btnCopyEmbedDone: "✓ Copied!",
         txtFooterDesc: "Free NMFC freight class estimator with density calculation, reverse lookup, batch mode and truck loading visualization. Not affiliated with NMFTA.",
         // dynamic strings
-        dTotal: "Total", dUnits: "units", dCube: "cube", dWeight: "weight",
+        dTotal: "Total", dUnits: "pcs", dCube: "cube", dWeight: "weight",
         dPerUnit: "per handling unit",
+        dPerLayer: "/ layer", dLayers: "layers", dPallets: "pallets",
+        pat_grid: "grid", pat_pinwheel: "pinwheel", pat_mixed: "mixed", pat_none: "—",
+        prPallets: "Pallets",
         wHeight: "Total height {h} exceeds the ~96 in limit many LTL carriers apply to standard pallet positions. Confirm with your carrier.",
         wWeight: "Unit weight {w} exceeds the typical per-pallet limit (~2,500–4,600 lbs depending on carrier). Confirm with your carrier.",
         wOverhang: "Cargo footprint is larger than the selected pallet ({c} vs {p}). Overhang can be charged as two pallet positions and voids some damage claims.",
@@ -1143,7 +1297,8 @@
         txtHeroP: "화물의 치수와 무게를 입력하면 밀도(PCF)와 예상 NMFC 화물 등급이 즉시 계산됩니다. 역산 계산, 다중 품목 배치 모드, 팔레트 프리셋, 53ft 트럭 적재 3D 미리보기까지 지원합니다.",
         txtInputTitle: "화물 정보 입력",
         tabSingle: "단일 품목", tabBatch: "배치(다중 품목)", tabReverse: "역산",
-        lblDims: '핸들링 유닛 치수 <span class="hint">(돌출부 포함 최대 직선 치수)</span>',
+        lblDims: '품목/카톤 치수 <span class="hint">(개당 — 팔레트 적재 시 자동으로 팔레트에 적층 계산)</span>',
+        lblMaxStack: '팔레트당 최대 적재 높이 <span class="hint">(팔레트 포함 — 대다수 LTL 운송사 상한 약 96 in)</span>',
         lblLoadType: "적재 방식",
         txtLoadPallet: "팔레트 적재", txtLoadFloor: "바닥 적재 (팔레트 없음)",
         lblPalletPreset: "팔레트 규격 프리셋",
@@ -1159,7 +1314,8 @@
         lblBatchHelp: "품목별로 행을 추가해 입력하세요. 행별 밀도/등급과 전체 화물 통합 등급이 함께 계산됩니다.",
         thName: "품목", thWt: "무게", thQty: "수량",
         btnAddRow: "+ 품목 추가",
-        lblBatchPallet: "각 행이 팔레트 유닛 (행마다 GMA 팔레트 37 lbs / 6 in 추가)",
+        lblBatchPallet: "행별 팔레트 적재 (선택한 팔레트에 자동 적층 계산)",
+        lblBatchPreset: "팔레트 프리셋 & 최대 적재 높이 (팔레트 포함)",
         lblRevClass: "목표 화물 클래스",
         lblRevKnown: "알고 있는 값은?",
         txtRevByWeight: "무게를 알아요", txtRevByDims: "치수를 알아요",
@@ -1191,8 +1347,11 @@
         txtEmbedHelp: "아래 코드를 물류 블로그나 포워더 사이트에 붙여넣으세요. 위젯은 무료이며, 크레딧 링크는 유지해야 합니다.",
         btnCopyEmbed: "📋 임베드 코드 복사", btnCopyEmbedDone: "✓ 복사됨!",
         txtFooterDesc: "밀도 계산, 역산, 배치 모드, 트럭 적재 시각화를 지원하는 무료 NMFC 화물 등급 추정 도구입니다. NMFTA와 무관합니다.",
-        dTotal: "합계", dUnits: "유닛", dCube: "부피", dWeight: "무게",
+        dTotal: "합계", dUnits: "개", dCube: "부피", dWeight: "무게",
         dPerUnit: "핸들링 유닛당",
+        dPerLayer: "개/단", dLayers: "단", dPallets: "팔레트",
+        pat_grid: "그리드", pat_pinwheel: "핀휠", pat_mixed: "혼합", pat_none: "—",
+        prPallets: "팔레트 수",
         wHeight: "총 높이 {h}가 다수 LTL 운송사의 표준 팔레트 상한(~96 in)을 초과합니다. 운송사에 사전 확인을 권장합니다.",
         wWeight: "유닛 무게 {w}가 팔레트당 통상 상한(운송사별 약 2,500~4,600 lbs)을 초과합니다. 운송사에 사전 확인을 권장합니다.",
         wOverhang: "화물 바닥면이 선택한 팔레트보다 큽니다 ({c} vs {p}). 오버행은 팔레트 2개 포지션으로 과금될 수 있고 파손 클레임이 제한될 수 있습니다.",
@@ -1232,7 +1391,7 @@
       document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
       const dict = translations[lang];
       // ids that carry HTML (hint spans)
-      const htmlKeys = { lblDims: 1, lblCommodity: 1 };
+      const htmlKeys = { lblDims: 1, lblCommodity: 1, lblMaxStack: 1 };
       for (const key in dict) {
         const el = document.getElementById(key);
         if (!el) continue;
@@ -1245,6 +1404,7 @@
       document.getElementById('optgDom').label = t('optgDomLbl');
       document.getElementById('optgExp').label = t('optgExpLbl');
       populateCommoditySelect();
+      populateBatchPresetSelect();
       renderHistory();
       onInput(true);
     }
@@ -1290,7 +1450,7 @@
     }
 
     // ---------- unit toggle: convert every visible value in place (spec 1.1) ----------
-    const LEN_FIELDS = ['inL','inW','inH','palL','palW','revL','revW','revH'];
+    const LEN_FIELDS = ['inL','inW','inH','palL','palW','revL','revW','revH','inMaxStack','batchMaxStack'];
     const WT_FIELDS = ['inWt','palWt','revWt'];
 
     function setUnits(sys) {
@@ -1319,6 +1479,7 @@
       set('tagWt', (currentLang === 'ko' ? '무게' : 'Weight') + ' (' + wu + ')');
       set('tagQty', currentLang === 'ko' ? '수량' : 'Qty (units)');
       set('tagPalL', 'Pal L (' + lu + ')'); set('tagPalW', 'Pal W (' + lu + ')'); set('tagPalWt', 'Pal wt (' + wu + ')');
+      set('tagMaxStack', 'Max H (' + lu + ')'); set('tagBatchMaxStack', 'Max H (' + lu + ')');
       set('tagRevWt', (currentLang === 'ko' ? '무게' : 'Weight') + ' (' + wu + ')');
       set('tagRevL', 'L (' + lu + ')'); set('tagRevW', 'W (' + lu + ')'); set('tagRevH', 'H (' + lu + ')');
       document.querySelectorAll('.thL').forEach(el => el.textContent = 'L(' + lu + ')');
@@ -1375,6 +1536,16 @@
       const key = document.getElementById('palletPreset').value;
       if (key !== 'custom') return { ...PALLETS[key] };
       return { l: readLen('palL') || 48, w: readLen('palW') || 40, h: 6, wt: readWt('palWt') || 0 };
+    }
+
+    // ---------- batch pallet preset (mirrors the single-mode presets, no custom) ----------
+    function populateBatchPresetSelect() {
+      const sel = document.getElementById('batchPalletPreset');
+      const cur = sel.value;
+      const keys = ['gma', 'drum', 'bev', 'auto', 'euro', 'half'];
+      const ids = ['optGma', 'optDrum', 'optBev', 'optAuto', 'optEuro', 'optHalf'];
+      sel.innerHTML = keys.map((k, i) => `<option value="${k}">${t(ids[i])}</option>`).join('');
+      if (cur) sel.value = cur;
     }
 
     // ---------- commodity select ----------
@@ -1447,20 +1618,37 @@
 
       const includePallet = loadType === 'pallet' && document.getElementById('includePallet').checked;
       const pal = getPallet();
-      // NMFC: measure the handling unit as tendered — pallet footprint governs
-      // unless the cargo overhangs it, and pallet height/weight are added.
-      const effL = includePallet ? Math.max(L, pal.l) : L;
-      const effW = includePallet ? Math.max(W, pal.w) : W;
-      const effH = includePallet ? H + pal.h : H;
-      const effWt = includePallet ? wt + pal.wt : wt;
-
-      const cube = effL * effW * effH / 1728;      // ft³ per unit
-      const density = effWt / cube;
+      // NMFC: measure the handling unit as tendered. When palletized, cartons
+      // are auto-stacked onto the pallet (grid/pinwheel/mixed layouts) and the
+      // density is computed on the resulting handling unit.
+      let pack = null;
+      if (includePallet) {
+        const maxH = readLen('inMaxStack') || 96;
+        pack = packOnPallet(L, W, H, wt, qty, pal, maxH);
+      }
+      let effL, effW, effH, effWt, cube, density, qtyUnits;
+      if (pack) {
+        effL = pack.unit.l; effW = pack.unit.w; effH = pack.unit.h; effWt = pack.unit.wt;
+        cube = effL * effW * effH / 1728;          // ft³ per handling unit
+        density = effWt / cube;
+        qtyUnits = pack.palletCount;
+      } else {
+        // floor load, pallet excluded, or carton too big for the pallet:
+        // each piece is its own handling unit (pallet footprint governs when
+        // the cargo overhangs it).
+        effL = includePallet ? Math.max(L, pal.l) : L;
+        effW = includePallet ? Math.max(W, pal.w) : W;
+        effH = includePallet ? H + pal.h : H;
+        effWt = includePallet ? wt + pal.wt : wt;
+        cube = effL * effW * effH / 1728;
+        density = effWt / cube;
+        qtyUnits = qty;
+      }
       const cf = classify(density, SCALE_FCDC);
       const c25 = classify(density, SCALE_2025);
 
       lastResult = {
-        mode: 'single', L, W, H, wt, qty, loadType, includePallet, pal,
+        mode: 'single', L, W, H, wt, qty, loadType, includePallet, pal, pack, qtyUnits,
         effL, effW, effH, effWt, cube, density, cls: cf.cls, cls25: c25.cls, sub25: c25.sub,
         rangeMin: cf.min, rangeMax: cf.max,
         commodity: document.getElementById('commoditySel').value
@@ -1468,7 +1656,8 @@
 
       // hero numbers
       document.getElementById('valDensity').innerHTML = density.toFixed(2) + ' <span>PCF</span>';
-      document.getElementById('lblCube').textContent = fmtN(cube, 2) + ' ft³ ' + t('dPerUnit');
+      document.getElementById('lblCube').textContent = fmtN(cube, 2) + ' ft³ ' + t('dPerUnit') +
+        (pack ? ' · ' + fmtDims(effL, effW, effH) : '');
       document.getElementById('valClass').textContent = cf.cls;
       document.getElementById('resBasis').innerHTML =
         (cf.max === Infinity ? cf.min + '+ PCF' : cf.min + ' – ' + cf.max + ' PCF') +
@@ -1479,10 +1668,18 @@
 
       // totals strip
       const tot = document.getElementById('totalsStrip');
-      tot.innerHTML =
-        `<span class="tot-chip">${t('dTotal')}: <b>${qty}</b> ${t('dUnits')}</span>` +
-        `<span class="tot-chip">${t('dCube')}: <b>${fmtN(cube * qty, 2)}</b> ft³</span>` +
-        `<span class="tot-chip">${t('dWeight')}: <b>${fmtN(showWt(effWt * qty), 1)}</b> ${wtUnit()}</span>`;
+      if (pack) {
+        tot.innerHTML =
+          `<span class="tot-chip">${t('dTotal')}: <b>${qty}</b> ${t('dUnits')} → <b>${pack.palletCount}</b> ${t('dPallets')}</span>` +
+          `<span class="tot-chip"><b>${pack.perLayer}</b> ${t('dPerLayer')} × <b>${pack.unit.layers}</b> ${t('dLayers')} · ${t('pat_' + pack.pattern)}</span>` +
+          `<span class="tot-chip">${t('dCube')}: <b>${fmtN(pack.totCube, 2)}</b> ft³</span>` +
+          `<span class="tot-chip">${t('dWeight')}: <b>${fmtN(showWt(pack.totWt), 1)}</b> ${wtUnit()}</span>`;
+      } else {
+        tot.innerHTML =
+          `<span class="tot-chip">${t('dTotal')}: <b>${qty}</b> ${t('dUnits')}</span>` +
+          `<span class="tot-chip">${t('dCube')}: <b>${fmtN(cube * qty, 2)}</b> ft³</span>` +
+          `<span class="tot-chip">${t('dWeight')}: <b>${fmtN(showWt(effWt * qty), 1)}</b> ${wtUnit()}</span>`;
+      }
 
       updateGauge(cf.cls);
       renderWarnings();
@@ -1508,11 +1705,26 @@
     function recalcBatch() {
       const rows = readBatchRows();
       const addPal = document.getElementById('batchIncludePallet').checked;
-      const pal = PALLETS.gma;
+      document.getElementById('batchPalletOpts').style.display = addPal ? '' : 'none';
+      const pal = PALLETS[document.getElementById('batchPalletPreset').value] || PALLETS.gma;
+      const maxH = readLen('batchMaxStack') || 96;
       if (!rows.length) { renderEmpty(); document.getElementById('batchResTable').innerHTML = ''; return; }
 
       let totCube = 0, totWt = 0, wavgNum = 0;
       const detail = rows.map(r => {
+        // palletize the row: stack its pieces onto pallets like single mode
+        if (addPal) {
+          const pack = packOnPallet(r.l, r.w, r.h, r.wt, r.q, pal, maxH);
+          if (pack) {
+            const unitCube = pack.unit.l * pack.unit.w * pack.unit.h / 1728;
+            const density = pack.unit.wt / unitCube;
+            const cf = classify(density, SCALE_FCDC);
+            totCube += pack.totCube; totWt += pack.totWt;
+            wavgNum += parseFloat(cf.cls) * pack.totWt;
+            return { ...r, effL: pack.unit.l, effW: pack.unit.w, effH: pack.unit.h, effWt: pack.unit.wt, cube: pack.totCube, density, cls: cf.cls, pack };
+          }
+        }
+        // floor load, or the piece cannot go on this pallet (overhang)
         const effL = addPal ? Math.max(r.l, pal.l) : r.l;
         const effW = addPal ? Math.max(r.w, pal.w) : r.w;
         const effH = addPal ? r.h + pal.h : r.h;
@@ -1522,7 +1734,7 @@
         const cf = classify(density, SCALE_FCDC);
         totCube += cube * r.q; totWt += effWt * r.q;
         wavgNum += parseFloat(cf.cls) * effWt * r.q;
-        return { ...r, effL, effW, effH, effWt, cube, density, cls: cf.cls };
+        return { ...r, effL, effW, effH, effWt, cube: cube * r.q, density, cls: cf.cls, pack: null };
       });
 
       const density = totWt / totCube;
@@ -1551,10 +1763,11 @@
         `<span class="tot-chip">${t('dWeight')}: <b>${fmtN(showWt(totWt), 1)}</b> ${wtUnit()}</span>` +
         `<span class="tot-chip">${t('bthWavg')}: <b>${wavg.toFixed(1)}</b></span>`;
 
-      // per-row table
+      // per-row table (cube column is the row total across its pallets/pieces)
       let html = `<tr><th>${t('bthRow')}</th><th>ft³</th><th>${t('bthDensity')}</th><th>${t('bthClass')}</th></tr>`;
       detail.forEach(d => {
-        html += `<tr><td>${escHtml(d.name)}${d.q > 1 ? ' ×' + d.q : ''}</td><td>${fmtN(d.cube, 1)}</td><td>${d.density.toFixed(2)}</td><td class="cls">${d.cls}</td></tr>`;
+        const palletTag = d.pack ? ` · ${d.pack.palletCount} plt` : '';
+        html += `<tr><td>${escHtml(d.name)}${d.q > 1 ? ' ×' + d.q : ''}${palletTag}</td><td>${fmtN(d.cube, 1)}</td><td>${d.density.toFixed(2)}</td><td class="cls">${d.cls}</td></tr>`;
       });
       document.getElementById('batchResTable').innerHTML = html;
 
@@ -1631,7 +1844,9 @@
       if (r.mode === 'single') {
         if (r.loadType === 'pallet') {
           const pal = r.pal;
-          if (r.L > pal.l || r.W > pal.w) {
+          // overhang only matters when the piece could not be packed onto the
+          // pallet footprint (pack === null while palletized)
+          if (!r.pack && (r.L > pal.l || r.W > pal.w)) {
             html += `<div class="warn-box"><span class="w-ico">⚠️</span><span>${tFmt('wOverhang', {
               c: fmtN(showLen(r.L)) + '×' + fmtN(showLen(r.W)) + ' ' + lenUnit(),
               p: fmtN(showLen(pal.l)) + '×' + fmtN(showLen(pal.w)) + ' ' + lenUnit()
@@ -1692,14 +1907,26 @@
     function vizUnits() {
       const r = lastResult;
       if (!r) return null;
+      // grid: carton layout inside a packed handling unit, for detailed drawing
+      const mkGrid = (pack) => pack ? { rects: pack.rects, ch: pack.ch, layers: pack.unit.layers } : null;
       if (r.mode === 'single') {
-        const u = { l: r.effL, w: r.effW, h: r.effH, wt: r.effWt, isPallet: r.loadType === 'pallet', palH: r.includePallet ? r.pal.h : 0 };
-        return { units: [u], qty: r.qty, mixed: false };
+        const u = {
+          l: r.effL, w: r.effW, h: r.effH, wt: r.effWt, q: r.qtyUnits,
+          isPallet: r.loadType === 'pallet' && (r.includePallet || !!r.pack),
+          palH: (r.loadType === 'pallet' && r.includePallet) ? r.pal.h : 0,
+          grid: mkGrid(r.pack)
+        };
+        return { units: [u], mixed: false };
       }
       if (r.mode === 'batch' && r.rows.length) {
-        // one entry per row type; quantities kept per row
+        // one entry per row type; quantities become pallet counts when packed
         return {
-          units: r.rows.map(d => ({ l: d.effL, w: d.effW, h: d.effH, wt: d.effWt, q: d.q, isPallet: r.includePallet, palH: r.includePallet ? r.pal.h : 0 })),
+          units: r.rows.map(d => ({
+            l: d.effL, w: d.effW, h: d.effH, wt: d.effWt,
+            q: d.pack ? d.pack.palletCount : d.q,
+            isPallet: r.includePallet, palH: r.includePallet ? r.pal.h : 0,
+            grid: mkGrid(d.pack)
+          })),
           mixed: true
         };
       }
@@ -1726,24 +1953,23 @@
       let cursorX = 0;             // along trailer length
       let totalCargoVol = 0, totalWt = 0, fitCount = 0, requested = 0;
 
-      const types = box.mixed ? box.units : [{ ...box.units[0], q: box.qty }];
+      const types = box.units;
       types.forEach((u, ti) => {
         if (!(u.l > 0 && u.w > 0 && u.h > 0)) return;
         // orient so the smaller side spans trailer width when it fits more per row
-        let ul = u.l, uw = u.w;
+        let ul = u.l, uw = u.w, swapped = false;
         const perRowA = uw <= T.w ? Math.floor(T.w / uw) : 0;
         const perRowB = ul <= T.w ? Math.floor(T.w / ul) : 0;
-        if (perRowB > perRowA) { ul = u.w; uw = u.l; }
+        if (perRowB > perRowA) { ul = u.w; uw = u.l; swapped = true; }
         const perRow = Math.floor(T.w / uw);
         if (perRow < 1 || ul > T.l || u.h > T.h) { requested += (u.q || 1); return; }
         const tiers = Math.max(1, Math.floor(T.h / u.h));
         let remaining = u.q || 1;
         requested += remaining;
         while (remaining > 0 && cursorX + ul <= T.l) {
-          const inRow = Math.min(perRow, Math.ceil(remaining / tiers));
           for (let i = 0; i < perRow && remaining > 0; i++) {
             let stack = Math.min(tiers, remaining);
-            placed.push({ x: cursorX, z: i * uw, l: ul, w: uw, h: u.h, tiers: stack, color: VIZ_COLORS[ti % VIZ_COLORS.length], palH: u.palH, isPallet: u.isPallet });
+            placed.push({ x: cursorX, z: i * uw, l: ul, w: uw, h: u.h, tiers: stack, color: VIZ_COLORS[ti % VIZ_COLORS.length], palH: u.palH, isPallet: u.isPallet, grid: u.grid, swapped });
             totalCargoVol += ul * uw * u.h * stack;
             totalWt += u.wt * stack;
             fitCount += stack;
@@ -1752,6 +1978,12 @@
           cursorX += ul;
         }
       });
+
+      // budget for per-carton drawing: beyond this, ALL units render as solid
+      // blocks (a mixed detailed/solid scene reads as a bug, so all-or-nothing)
+      const totalCartonCuboids = placed.reduce((s, pc) =>
+        s + (pc.grid ? pc.grid.rects.length * pc.grid.layers * pc.tiers : 0), 0);
+      const drawCartons = totalCartonCuboids > 0 && totalCartonCuboids <= 400;
 
       const usedLinear = cursorX;
       const truckVol = T.l * T.w * T.h;
@@ -1805,17 +2037,31 @@
 
       const items = [];
       placed.forEach(pc => {
+        const top = pc.color, right = adjustColor(pc.color, -20), front = adjustColor(pc.color, -38), stroke = adjustColor(pc.color, 12);
         for (let tier = 0; tier < pc.tiers; tier++) {
           const y0 = tier * pc.h;
           if (pc.isPallet && pc.palH > 0) {
-            // pallet base then cargo block above it, inside the same unit height
+            // pallet base first; cargo sits above it inside the same unit height
             items.push(cuboid(pc.x + 1, y0, pc.z + 1, pc.l - 2, pc.palH, pc.w - 2, '#8B5A2B', '#6F4721', '#5C3A1A', '#A06E3F'));
-            const ch = pc.h - pc.palH;
-            items.push(cuboid(pc.x + 2, y0 + pc.palH, pc.z + 2, pc.l - 4, ch - 1, pc.w - 4,
-              pc.color, adjustColor(pc.color, -20), adjustColor(pc.color, -38), adjustColor(pc.color, 12)));
+            const g = pc.grid;
+            if (g && drawCartons) {
+              // draw the actual carton layout from the packing engine; rect
+              // coords live in unit-local (l × w) space — swap axes when the
+              // unit was rotated to fit the trailer width
+              for (let li = 0; li < g.layers; li++) {
+                const yc = y0 + pc.palH + li * g.ch;
+                for (const rc of g.rects) {
+                  const rx = pc.swapped ? rc.y : rc.x, rz = pc.swapped ? rc.x : rc.y;
+                  const rw = pc.swapped ? rc.h : rc.w, rd = pc.swapped ? rc.w : rc.h;
+                  items.push(cuboid(pc.x + rx + 1, yc, pc.z + rz + 1, rw - 2, g.ch - 1, rd - 2, top, right, front, stroke));
+                }
+              }
+            } else {
+              const ch = pc.h - pc.palH;
+              items.push(cuboid(pc.x + 2, y0 + pc.palH, pc.z + 2, pc.l - 4, ch - 1, pc.w - 4, top, right, front, stroke));
+            }
           } else {
-            items.push(cuboid(pc.x + 1, y0, pc.z + 1, pc.l - 2, pc.h - 1, pc.w - 2,
-              pc.color, adjustColor(pc.color, -20), adjustColor(pc.color, -38), adjustColor(pc.color, 12)));
+            items.push(cuboid(pc.x + 1, y0, pc.z + 1, pc.l - 2, pc.h - 1, pc.w - 2, top, right, front, stroke));
           }
         }
       });
@@ -1845,6 +2091,7 @@
         if (loadType === 'pallet') {
           p.set('pp', document.getElementById('palletPreset').value);
           p.set('ip', document.getElementById('includePallet').checked ? 1 : 0);
+          p.set('msh', document.getElementById('inMaxStack').value);
           if (document.getElementById('palletPreset').value === 'custom') {
             p.set('pl', document.getElementById('palL').value);
             p.set('pw', document.getElementById('palW').value);
@@ -1867,6 +2114,8 @@
         });
         p.set('b', rows.join('|'));
         p.set('bp', document.getElementById('batchIncludePallet').checked ? 1 : 0);
+        p.set('bpp', document.getElementById('batchPalletPreset').value);
+        p.set('bmsh', document.getElementById('batchMaxStack').value);
       }
       return location.origin + location.pathname + '?' + p.toString();
     }
@@ -1898,6 +2147,7 @@
       if (g('pw')) document.getElementById('palW').value = g('pw');
       if (g('pwt')) document.getElementById('palWt').value = g('pwt');
       if (g('ip') !== null) document.getElementById('includePallet').checked = g('ip') === '1';
+      if (g('msh')) document.getElementById('inMaxStack').value = g('msh');
       ['l','w','h','wt','q'].forEach((k, i) => { if (g(k)) document.getElementById(['inL','inW','inH','inWt','inQty'][i]).value = g(k); });
       if (g('com')) document.getElementById('commoditySel').value = g('com');
       if (g('rc')) document.getElementById('revClass').value = g('rc');
@@ -1913,6 +2163,8 @@
           if (f.length === 6) addBatchRow({ name: f[0], l: f[1], w: f[2], h: f[3], wt: f[4], q: f[5] });
         });
         document.getElementById('batchIncludePallet').checked = g('bp') === '1';
+        if (g('bpp')) document.getElementById('batchPalletPreset').value = g('bpp');
+        if (g('bmsh')) document.getElementById('batchMaxStack').value = g('bmsh');
       }
       if (m) setMode(m);
     }
@@ -1999,7 +2251,8 @@
         shipRows =
           `<tr><th>${t('prDims')}</th><td>${fmtDims(r.L, r.W, r.H)}</td><th>${t('prWeight')}</th><td>${fmtN(showWt(r.wt), 1)} ${wtUnit()}</td></tr>` +
           `<tr><th>${t('prQty')}</th><td>${r.qty}</td><th>${t('prLoad')}</th><td>${r.loadType === 'pallet' ? t('prPalletized') : t('prFloor')}${r.includePallet ? ' + ' + t('prPallet') + ' ' + fmtN(showLen(r.pal.l)) + '×' + fmtN(showLen(r.pal.w)) + ' ' + lenUnit() : ''}</td></tr>` +
-          `<tr><th>${t('prCube')}</th><td>${fmtN(r.cube, 2)} ft³</td><th>PCF</th><td>${r.density.toFixed(2)}</td></tr>`;
+          `<tr><th>${t('prCube')}</th><td>${fmtN(r.cube, 2)} ft³</td><th>PCF</th><td>${r.density.toFixed(2)}</td></tr>` +
+          (r.pack ? `<tr><th>${t('prPallets')}</th><td>${r.pack.palletCount} × ${fmtN(showLen(r.pal.l))}×${fmtN(showLen(r.pal.w))} ${lenUnit()}</td><th>${t('dPerLayer')} × ${t('dLayers')}</th><td>${r.pack.perLayer} × ${r.pack.unit.layers} (${t('pat_' + r.pack.pattern)})</td></tr>` : '');
       } else {
         shipRows = r.rows.map(d =>
           `<tr><th>${escHtml(d.name)} ×${d.q}</th><td>${fmtDims(d.l, d.w, d.h)}</td><th>${fmtN(showWt(d.wt), 1)} ${wtUnit()}</th><td>PCF ${d.density.toFixed(2)} → Class ${d.cls}</td></tr>`).join('') +
@@ -2037,6 +2290,7 @@
       document.getElementById('revClass').innerHTML =
         ALL_CLASSES.map(c => `<option value="${c}" ${c === '70' ? 'selected' : ''}>Class ${c}</option>`).join('');
       populateCommoditySelect();
+      populateBatchPresetSelect();
       updateUnitTags();
       addBatchRow({ name: 'Item 1', l: 48, w: 40, h: 40, wt: 400, q: 1 });
       addBatchRow({ name: 'Item 2', l: 30, w: 24, h: 30, wt: 150, q: 2 });
