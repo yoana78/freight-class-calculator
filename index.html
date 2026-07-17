@@ -149,6 +149,19 @@
       font-size: 9px; letter-spacing: 1px; color: var(--ink-faint); opacity: 0.6;
     }
 
+    /* Side ad rails: fixed 160x600 skyscrapers flanking the content column.
+       Only shown when the viewport is wide enough that they never overlap
+       the content (main column ≤ 860px + 2×(160px rail + gaps)). */
+    .ad-rail {
+      display: none; position: fixed; top: 110px; width: 160px; min-height: 600px;
+      z-index: 50; margin: 0;
+    }
+    .ad-rail.left { left: max(10px, calc(50% - 780px)); }
+    .ad-rail.right { right: max(10px, calc(50% - 780px)); }
+    @media (min-width: 1400px) {
+      .ad-rail { display: flex; }
+    }
+
     /* ---------- Hero ---------- */
     .hero { text-align: center; margin: 8px 0 20px; }
     .hero h2 { font-size: clamp(22px, 4vw, 32px); font-weight: 700; letter-spacing: -0.5px; }
@@ -396,7 +409,7 @@
     .batch-res-table td.cls { font-weight: 700; color: var(--cyan); }
 
     /* ---------- Truck Viz ---------- */
-    .viz-section { margin-top: 24px; }
+    .viz-section { margin: 24px auto 0; max-width: 970px; width: 100%; }
     .viz-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .viz-card-body { padding: 10px 18px 18px; }
     .viz {
@@ -463,6 +476,7 @@
 
     /* ---------- Embed mode: strip chrome so the calculator iframes cleanly ---------- */
     body.embed-mode header, body.embed-mode .hero, body.embed-mode .adsense-placeholder,
+    body.embed-mode .ad-rail,
     body.embed-mode .seo-content, body.embed-mode .bottom-info, body.embed-mode .viz-section,
     body.embed-mode #embedSection, body.embed-mode #historyWrap { display: none !important; }
     body.embed-mode .container { padding: 12px; }
@@ -524,6 +538,14 @@
     </div>
   </header>
 
+  <!-- SIDE AD RAILS (wide screens only, fixed beside the content column) -->
+  <div class="adsense-placeholder ad-rail left" id="adRailLeft">
+    <div>AdSense Skyscraper<br>(160×600)</div>
+  </div>
+  <div class="adsense-placeholder ad-rail right" id="adRailRight">
+    <div>AdSense Skyscraper<br>(160×600)</div>
+  </div>
+
   <div class="container">
 
     <!-- HERO -->
@@ -534,7 +556,7 @@
     </div>
 
     <!-- TOP AD (above results per spec: quick visibility without blocking content) -->
-    <div class="adsense-placeholder" style="min-height: 90px; margin: 4px 0 16px;">
+    <div class="adsense-placeholder" style="min-height: 90px; margin: 4px auto 16px; max-width: 970px; width: 100%;">
       <div>AdSense Top Banner (728×90 / responsive)</div>
     </div>
 
@@ -879,7 +901,7 @@
     <!-- ==============================================
          EMBED WIDGET (backlink strategy, spec §2.10)
          ============================================== -->
-    <div class="card" id="embedSection" style="margin-top: 24px;">
+    <div class="card" id="embedSection" style="margin: 24px auto 0; max-width: 970px; width: 100%;">
       <div class="card-head"><h3 id="txtEmbedTitle">Embed this calculator on your site — free</h3></div>
       <div class="card-body">
         <p style="font-size: 13px; color: var(--ink-dim);" id="txtEmbedHelp">Copy the snippet below into your logistics blog or forwarder site. The widget stays free; the credit link must remain visible.</p>
