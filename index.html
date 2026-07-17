@@ -530,9 +530,13 @@
       <div class="card">
         <div class="card-head">
           <h3 id="txtInputTitle">Shipment Details</h3>
+          <div style="display:flex; gap:8px; align-items:center;">
+          <button onclick="location.href=location.pathname" id="btnReset" title="Reset all inputs"
+            style="border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim); cursor:pointer; border-radius:20px; padding:6px 10px; font-size:12px;">↺</button>
           <div class="unit-toggle">
             <button id="unitBtnImp" class="active" onclick="setUnits('imp')">in + lbs</button>
             <button id="unitBtnMet" onclick="setUnits('met')">mm + kg</button>
+          </div>
           </div>
         </div>
         <div class="card-body">
@@ -634,6 +638,7 @@
           <!-- ============ BATCH MODE ============ -->
           <div id="paneBatch" class="hidden">
             <label class="form-label" id="lblBatchHelp">Enter each item on its own row. Density and class are computed per row, plus a combined shipment class.</label>
+            <div style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
             <table class="batch-table">
               <thead>
                 <tr>
@@ -642,6 +647,7 @@
               </thead>
               <tbody id="batchRows"></tbody>
             </table>
+            </div>
             <button class="btn-add-row" onclick="addBatchRow()" id="btnAddRow">+ Add item</button>
             <div class="form-group" style="margin-top:12px;">
               <label class="check-row">
@@ -1388,7 +1394,8 @@
         // dynamic strings
         dTotal: "Total", dUnits: "pcs", dCube: "cube", dWeight: "weight",
         dPerUnit: "per handling unit",
-        dPerLayer: "/ layer", dLayers: "layers", dPallets: "pallets",
+        dPerLayer: "/ layer", dLayers: "layers", dPallets: "pallets", dPallet1: "pallet", dUnit1: "pc",
+        wNearBreak: "Only {pcf} PCF from Class {cls} (cheaper): pack about {cube} ft³ tighter — or the same space at +{wt} would also qualify.",
         pat_grid: "grid", pat_pinwheel: "pinwheel", pat_mixed: "mixed", pat_none: "—",
         prPallets: "Pallets",
         wHeight: "Total height {h} exceeds the ~96 in limit many LTL carriers apply to standard pallet positions. Confirm with your carrier.",
@@ -1482,7 +1489,8 @@
         txtFooterDesc: "밀도 계산, 역산, 배치 모드, 트럭 적재 시각화를 지원하는 무료 NMFC 화물 등급 추정 도구입니다. NMFTA와 무관합니다.",
         dTotal: "합계", dUnits: "개", dCube: "부피", dWeight: "무게",
         dPerUnit: "핸들링 유닛당",
-        dPerLayer: "개/단", dLayers: "단", dPallets: "팔레트",
+        dPerLayer: "개/단", dLayers: "단", dPallets: "팔레트", dPallet1: "팔레트", dUnit1: "개",
+        wNearBreak: "Class {cls}(더 저렴)까지 {pcf} PCF 남음 — 부피를 약 {cube} ft³ 줄이거나, 같은 부피에서 무게가 +{wt} 나가면 도달합니다.",
         pat_grid: "그리드", pat_pinwheel: "핀휠", pat_mixed: "혼합", pat_none: "—",
         prPallets: "팔레트 수",
         wHeight: "총 높이 {h}가 다수 LTL 운송사의 표준 팔레트 상한(~96 in)을 초과합니다. 운송사에 사전 확인을 권장합니다.",
@@ -1635,6 +1643,8 @@
       document.getElementById('resMain').classList.toggle('hidden', m === 'reverse');
       document.getElementById('resReverse').classList.toggle('hidden', m !== 'reverse');
       document.getElementById('batchResWrap').classList.toggle('hidden', m !== 'batch');
+      // no shipment report to print in reverse mode — hide the PDF action
+      document.getElementById('btnPdf').style.display = m === 'reverse' ? 'none' : '';
       onInput(true);
     }
 
@@ -1823,15 +1833,17 @@
       const tot = document.getElementById('totalsStrip');
       if (pack) {
         tot.innerHTML =
-          `<span class="tot-chip">${t('dTotal')}: <b>${qty}</b> ${t('dUnits')} → <b>${pack.palletCount}</b> ${t('dPallets')}</span>` +
+          `<span class="tot-chip">${t('dTotal')}: <b>${qty}</b> ${nPcs(qty)} → <b>${pack.palletCount}</b> ${nPallets(pack.palletCount)}</span>` +
           `<span class="tot-chip"><b>${pack.perLayer}</b> ${t('dPerLayer')} × <b>${pack.unit.layers}</b> ${t('dLayers')} · ${t('pat_' + pack.pattern)}</span>` +
           `<span class="tot-chip">${t('dCube')}: <b>${fmtN(pack.totCube, 2)}</b> ft³</span>` +
           `<span class="tot-chip">${t('dWeight')}: <b>${fmtN(showWt(pack.totWt), 1)}</b> ${wtUnit()}</span>`;
+        lastResult.hintWt = pack.totWt; lastResult.hintCube = pack.totCube;
       } else {
         tot.innerHTML =
-          `<span class="tot-chip">${t('dTotal')}: <b>${qty}</b> ${t('dUnits')}</span>` +
+          `<span class="tot-chip">${t('dTotal')}: <b>${qty}</b> ${nPcs(qty)}</span>` +
           `<span class="tot-chip">${t('dCube')}: <b>${fmtN(cube * qty, 2)}</b> ft³</span>` +
           `<span class="tot-chip">${t('dWeight')}: <b>${fmtN(showWt(effWt * qty), 1)}</b> ${wtUnit()}</span>`;
+        lastResult.hintWt = effWt * qty; lastResult.hintCube = cube * qty;
       }
 
       updateGauge(cf.cls);
@@ -1852,7 +1864,12 @@
       document.getElementById('warnings').innerHTML = '';
       document.getElementById('commodityNote').innerHTML = '';
       document.getElementById('lblGaugeVal').textContent = '—';
+      document.getElementById('gaugeMarker').style.left = 'calc(50% - 2px)';
     }
+
+    // singular/plural helpers ("1 pallets" reads as a bug to native speakers)
+    function nPallets(n) { return n === 1 ? t('dPallet1') : t('dPallets'); }
+    function nPcs(n) { return n === 1 ? t('dUnit1') : t('dUnits'); }
 
     // ----- batch -----
     function recalcBatch() {
@@ -1927,8 +1944,9 @@
       chip.textContent = 'Class ' + c25.cls + ' · sub ' + c25.sub;
       chip.classList.toggle('same', c25.cls === cf.cls);
 
+      lastResult.hintWt = totWt; lastResult.hintCube = totCube;
       document.getElementById('totalsStrip').innerHTML =
-        (mixedPack ? `<span class="tot-chip">${t('dPallets')}: <b>${mixedPack.palletCount}</b> (${t('bthMixedTag')})</span>` : '') +
+        (mixedPack ? `<span class="tot-chip"><b>${mixedPack.palletCount}</b> ${nPallets(mixedPack.palletCount)} (${t('bthMixedTag')})</span>` : '') +
         `<span class="tot-chip">${t('dCube')}: <b>${fmtN(totCube, 2)}</b> ft³</span>` +
         `<span class="tot-chip">${t('dWeight')}: <b>${fmtN(showWt(totWt), 1)}</b> ${wtUnit()}</span>` +
         (mixedPack ? '' : `<span class="tot-chip">${t('bthWavg')}: <b>${wavg.toFixed(1)}</b></span>`);
@@ -2044,6 +2062,26 @@
           }
         } else {
           html += `<div class="warn-box info"><span class="w-ico">ℹ️</span><span>${t('wFloor')}</span></div>`;
+        }
+      }
+
+      // near-break nudge (single & batch): when the shipment is close to the
+      // next denser bracket, say exactly what it takes to reach the cheaper
+      // class — the actionable answer competitors don't give.
+      if (r.density && r.hintWt && r.hintCube) {
+        const i = SCALE_FCDC.findIndex(e => r.density >= e.min);
+        if (i > 0) {
+          const next = SCALE_FCDC[i - 1];
+          const delta = next.min - r.density;
+          if (delta > 0 && delta / r.density <= 0.25) {
+            const cutCube = r.hintCube - r.hintWt / next.min;
+            const addWt = next.min * r.hintCube - r.hintWt;
+            html += `<div class="warn-box info"><span class="w-ico">💡</span><span>${tFmt('wNearBreak', {
+              pcf: delta.toFixed(2), cls: next.cls,
+              cube: fmtN(cutCube, 1),
+              wt: fmtN(showWt(addWt), 0) + ' ' + wtUnit()
+            })}</span></div>`;
+          }
         }
       }
       box.innerHTML = html;
