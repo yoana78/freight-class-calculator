@@ -161,11 +161,24 @@
     }
 
     /* ---------- Calculator Layout ---------- */
-    .calc-section {
-      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 20px; align-items: start;
+    /* Step flow (input → loading → result), same pattern as the pallet tool */
+    .step-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
+    .btn-calc-big {
+      width: 100%; margin-top: 8px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, var(--cyan), #0369A1); color: #FFF;
+      border-radius: 10px; padding: 15px; font-size: 15.5px; font-weight: 700;
+      font-family: var(--sans); transition: all 0.15s;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.25);
     }
-    @media (max-width: 900px) { .calc-section { grid-template-columns: 1fr; } }
+    .btn-calc-big:hover { filter: brightness(1.08); }
+    .loader-card { text-align: center; padding: 48px 20px; }
+    .loader-card p { color: var(--ink-dim); font-size: 14px; }
+    .spinner {
+      width: 42px; height: 42px; border: 4px solid var(--line);
+      border-top-color: var(--cyan); border-radius: 50%;
+      margin: 0 auto 16px; animation: fcspin 0.9s linear infinite;
+    }
+    @keyframes fcspin { to { transform: rotate(360deg); } }
 
     .card {
       background: var(--panel); border: 1px solid var(--line);
@@ -261,8 +274,7 @@
     .btn-add-row:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
 
     /* ---------- Result Card ---------- */
-    .result-card { position: sticky; top: 84px; }
-    @media (max-width: 900px) { .result-card { position: static; } }
+    .result-card { position: static; }
 
     .result-hero {
       display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; align-items: stretch;
@@ -468,20 +480,25 @@
         display: block; width: 100%;
         background: #FFF; color: #0F172A; font-family: var(--sans); padding: 24px;
       }
-      .pr-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0F172A; padding-bottom: 10px; }
-      .pr-head .pr-brand { font-size: 18px; font-weight: 700; }
-      .pr-head .pr-meta { font-family: var(--mono); font-size: 10.5px; color: #475569; text-align: right; }
-      .pr-title { font-size: 13px; font-weight: 700; letter-spacing: 1px; margin: 16px 0 8px; }
-      .pr-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
-      .pr-table th { text-align: left; padding: 5px 8px; border: 1px solid #CBD5E1; background: #F1F5F9; font-weight: 600; }
-      .pr-table td { padding: 5px 8px; border: 1px solid #CBD5E1; font-family: var(--mono); }
-      .pr-result { display: flex; gap: 14px; margin: 14px 0; }
-      .pr-result .pr-card { flex: 1; border: 1.5px solid #0F172A; border-radius: 8px; padding: 12px 16px; text-align: center; }
-      .pr-result .pr-card .l { font-size: 10.5px; font-weight: 600; color: #475569; letter-spacing: 0.5px; }
-      .pr-result .pr-card .v { font-family: var(--mono); font-size: 30px; font-weight: 700; }
-      .pr-note { font-size: 10px; color: #64748B; margin-top: 4px; }
-      .pr-gauge { margin: 10px 0; }
-      .pr-foot { border-top: 1px solid #CBD5E1; margin-top: 18px; padding-top: 8px; font-size: 9.5px; color: #64748B; line-height: 1.5; }
+      /* compact metrics so the whole report fits on ONE page incl. the truck
+         snapshot; avoid element-level page breaks as a second line of defense */
+      @page { margin: 9mm; }
+      #printReport > * { page-break-inside: avoid; }
+      .pr-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0F172A; padding-bottom: 6px; }
+      .pr-head .pr-brand { font-size: 16px; font-weight: 700; }
+      .pr-head .pr-meta { font-family: var(--mono); font-size: 9.5px; color: #475569; text-align: right; }
+      .pr-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin: 9px 0 5px; }
+      .pr-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+      .pr-table th { text-align: left; padding: 3px 6px; border: 1px solid #CBD5E1; background: #F1F5F9; font-weight: 600; }
+      .pr-table td { padding: 3px 6px; border: 1px solid #CBD5E1; font-family: var(--mono); }
+      .pr-result { display: flex; gap: 10px; margin: 8px 0; }
+      .pr-result .pr-card { flex: 1; border: 1.5px solid #0F172A; border-radius: 8px; padding: 7px 12px; text-align: center; }
+      .pr-result .pr-card .l { font-size: 9.5px; font-weight: 600; color: #475569; letter-spacing: 0.5px; }
+      .pr-result .pr-card .v { font-family: var(--mono); font-size: 24px; font-weight: 700; }
+      .pr-note { font-size: 9px; color: #64748B; margin-top: 3px; }
+      .pr-gauge { margin: 5px 0; }
+      .pr-gauge svg { height: 34px; }
+      .pr-foot { border-top: 1px solid #CBD5E1; margin-top: 10px; padding-top: 6px; font-size: 8.5px; color: #64748B; line-height: 1.45; }
     }
   </style>
 </head>
@@ -524,7 +541,7 @@
     <!-- ==============================================
          CALCULATOR
          ============================================== -->
-    <div class="calc-section">
+    <div class="step-wrap" id="stepInput">
 
       <!-- INPUT CARD -->
       <div class="card">
@@ -711,14 +728,34 @@
             </div>
           </div>
 
+          <button class="btn-calc-big" onclick="goCalculate()" id="btnCalcBig">📊 Calculate freight class</button>
         </div>
       </div>
+    </div>
 
+    <!-- ==============================================
+         LOADING INTERSTITIAL (brief transition, ad slot)
+         ============================================== -->
+    <div class="step-wrap hidden" id="stepLoading">
+      <div class="loader-card">
+        <div class="spinner"></div>
+        <p id="txtLoadingMsg">Calculating density and freight class…</p>
+        <div class="adsense-placeholder" style="margin: 32px auto 0; min-height: 250px; max-width: 336px;">
+          <div>AdSense Interstitial (300×250)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         RESULT STEP
+         ============================================== -->
+    <div class="hidden" id="stepResult">
+    <div class="step-wrap">
       <!-- RESULT CARD -->
       <div class="card result-card">
         <div class="card-head">
           <h3 id="txtResultTitle">Result</h3>
-          <span class="n" id="txtResultLive">LIVE · UPDATES AS YOU TYPE</span>
+          <span class="n" id="txtResultLive">NMFC DENSITY ESTIMATE</span>
         </div>
         <div class="card-body" id="resultBody">
 
@@ -774,6 +811,7 @@
           <div class="disclaimer" id="txtDisclaimer">This tool provides an estimated freight class based on density only. Actual classification depends on stowability, handling, and liability factors as determined by the official NMFC. For binding classification, consult NMFTA's ClassIT+ or your carrier.</div>
 
           <div class="action-row">
+            <button class="btn" onclick="backToInput()" id="btnBack">← Edit inputs</button>
             <button class="btn" onclick="copyShareLink(this)" id="btnShare">🔗 Copy result link</button>
             <button class="btn primary" onclick="savePdf()" id="btnPdf">📄 Save PDF report</button>
           </div>
@@ -784,7 +822,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </div><!-- /.step-wrap -->
 
     <!-- ==============================================
          TRUCK LOADING 3D (on-demand render: spec §3.2)
@@ -836,6 +874,7 @@
         <div>AdSense Banner below 3D preview (728×90 / responsive)</div>
       </div>
     </div>
+    </div><!-- /#stepResult -->
 
     <!-- ==============================================
          EMBED WIDGET (backlink strategy, spec §2.10)
@@ -1363,7 +1402,10 @@
         lblRevClass: "Target freight class",
         lblRevKnown: "What do you know?",
         txtRevByWeight: "I know the weight", txtRevByDims: "I know the dimensions",
-        txtResultTitle: "Result", txtResultLive: "LIVE · UPDATES AS YOU TYPE",
+        txtResultTitle: "Result", txtResultLive: "NMFC DENSITY ESTIMATE",
+        btnCalcBig: "📊 Calculate freight class",
+        txtLoadingMsg: "Calculating density and freight class…",
+        btnBack: "← Edit inputs", prTruck: "TRUCK LOADING SNAPSHOT",
         lblDensity: "DENSITY", lblClass: "ESTIMATED FREIGHT CLASS",
         lblAlt2025: "Under the 2025 NMFC 13-sub density scale:",
         altSame: "same class", basisFcdc: "FCDC density guidelines",
@@ -1459,7 +1501,10 @@
         lblRevClass: "목표 화물 클래스",
         lblRevKnown: "알고 있는 값은?",
         txtRevByWeight: "무게를 알아요", txtRevByDims: "치수를 알아요",
-        txtResultTitle: "계산 결과", txtResultLive: "실시간 · 입력 즉시 갱신",
+        txtResultTitle: "계산 결과", txtResultLive: "NMFC 밀도 기준 추정",
+        btnCalcBig: "📊 화물 클래스 계산하기",
+        txtLoadingMsg: "밀도와 화물 클래스를 계산하는 중입니다…",
+        btnBack: "← 입력 수정", prTruck: "트럭 적재 스냅샷",
         lblDensity: "밀도 (DENSITY)", lblClass: "예상 화물 클래스",
         lblAlt2025: "2025 NMFC 13-sub 밀도 스케일 기준:",
         altSame: "동일 등급", basisFcdc: "FCDC 밀도 가이드라인",
@@ -1750,6 +1795,30 @@
         if ([r.l, r.w, r.h, r.wt].every(x => !isNaN(x) && x > 0)) rows.push(r);
       });
       return rows;
+    }
+
+    // ---------- step flow: input → brief loading → result ----------
+    let loadingTimer = null;
+    function showStep(name) {
+      document.getElementById('stepInput').classList.toggle('hidden', name !== 'input');
+      document.getElementById('stepLoading').classList.toggle('hidden', name !== 'loading');
+      document.getElementById('stepResult').classList.toggle('hidden', name !== 'result');
+    }
+    function goCalculate() {
+      recalc();                          // result DOM is ready before reveal
+      showStep('loading');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      clearTimeout(loadingTimer);
+      loadingTimer = setTimeout(() => {
+        showStep('result');
+        if (!document.getElementById('vizCard').classList.contains('hidden')) drawTruck();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 1200);
+    }
+    function backToInput() {
+      clearTimeout(loadingTimer);
+      showStep('input');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ---------- main recalc (debounced live updates, spec §4) ----------
@@ -2615,8 +2684,11 @@
           `<tr><th>${t('prCube')}</th><td>${fmtN(r.cube, 2)} ft³</td><th>PCF</th><td>${r.density.toFixed(2)}</td></tr>` +
           (r.pack ? `<tr><th>${t('prPallets')}</th><td>${r.pack.palletCount} × ${fmtN(showLen(r.pal.l))}×${fmtN(showLen(r.pal.w))} ${lenUnit()}</td><th>${t('dPerLayer')} × ${t('dLayers')}</th><td>${r.pack.perLayer} × ${r.pack.unit.layers} (${t('pat_' + r.pack.pattern)})</td></tr>` : '');
       } else {
-        shipRows = r.rows.map(d =>
+        // cap listed rows so the report always stays on one page
+        const shown = r.rows.slice(0, 8);
+        shipRows = shown.map(d =>
           `<tr><th>${escHtml(d.name)} ×${d.q}</th><td>${fmtDims(d.l, d.w, d.h)}</td><th>${fmtN(showWt(d.wt), 1)} ${wtUnit()}</th><td>PCF ${d.density.toFixed(2)} → Class ${d.cls}</td></tr>`).join('') +
+          (r.rows.length > 8 ? `<tr><th colspan="4">… +${r.rows.length - 8}</th></tr>` : '') +
           `<tr><th>${t('dTotal')}</th><td>${fmtN(r.totCube, 2)} ft³</td><th>${fmtN(showWt(r.totWt), 1)} ${wtUnit()}</th><td>PCF ${r.density.toFixed(2)}</td></tr>`;
       }
 
@@ -2625,6 +2697,21 @@
         const c = COMMODITIES.find(x => x.key === r.commodity);
         if (c) comNote = `<div class="pr-title">${t('prCommodity')}</div><div class="pr-note">${(currentLang === 'ko' ? c.ko : c.en)} — class ~${c.cls}${c.fixed ? ' (NMFC item often governs)' : ''}</div>`;
       }
+
+      // truck loading snapshot (spec §2.9 item 6): render the current viz and
+      // embed the SVG inline so it prints crisply without a canvas step
+      let truckBlock = '';
+      try {
+        drawTruck();
+        const svgSrc = document.getElementById('truckSvg').outerHTML
+          .replace('id="truckSvg"', '')
+          .replace('class="viz"', 'style="width:88%;max-height:215px;border:1px solid #CBD5E1;border-radius:8px;background:#FFF;"');
+        const k = id => document.getElementById(id).textContent.trim().replace(/\s+/g, ' ');
+        const truckName = document.getElementById('truckSel').selectedOptions[0].textContent;
+        truckBlock = `<div class="pr-title">${t('prTruck')} — ${truckName}</div>` +
+          `<div style="text-align:center;">${svgSrc}</div>` +
+          `<div class="pr-note" style="text-align:center;">${t('lblVkFit')}: ${k('vkFit')} · ${t('lblVkUtil')}: ${k('vkUtil')} · ${t('lblVkLinear')}: ${k('vkLinear')} ft</div>`;
+      } catch (e) {}
 
       document.getElementById('printReport').innerHTML =
         `<div class="pr-head">` +
@@ -2639,6 +2726,7 @@
         `<div class="pr-note">${t('prBasis')}: ${r.rangeMax === Infinity ? r.rangeMin + '+' : r.rangeMin + '–' + r.rangeMax} PCF · ${t('prAlt')}: Class ${r.cls25} (sub ${r.sub25})</div></div>` +
         `</div>` +
         `<div class="pr-title">${t('prGauge')}</div><div class="pr-gauge">${gaugeSvg}</div>` +
+        truckBlock +
         comNote +
         `<div class="pr-foot">${t('prDisclaimer')}</div>`;
 
@@ -2659,6 +2747,8 @@
       const qs = new URLSearchParams(location.search);
       if (qs.get('embed') === '1') document.body.classList.add('embed-mode');
       if ([...qs.keys()].length) applyParams(qs);
+      // shared links land straight on the (pre-computed) result view
+      if (qs.get('m') || qs.get('l') || qs.get('b') || qs.get('rc')) showStep('result');
 
       renderHistory();
       onInput(true);
