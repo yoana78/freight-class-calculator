@@ -2,7 +2,7 @@
 
 Free NMFC freight class (density) calculator for LTL shipping — single-file static web app.
 
-**Live:** https://freight-class-density-calculator.pages.dev/
+**Live:** https://freight-class-calculator.pages.dev/
 
 ## Features
 

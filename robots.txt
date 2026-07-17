@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://freight-class-density-calculator.pages.dev/sitemap.xml
+Sitemap: https://freight-class-calculator.pages.dev/sitemap.xml
